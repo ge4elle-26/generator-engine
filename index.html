@@ -263,28 +263,8 @@ textarea.composer::placeholder { color:var(--text2); }
 .s-scope.on { background:var(--accent); color:#000; }
 .s-scope-add { color:var(--accent); font-size:18px; padding:6px 12px; }
 
-/* ── Import panel ───────────────────────────────── */
-.import-panel {
-  display:none; flex-direction:column; gap:8px;
-  background:var(--card); border-radius:var(--r);
-  padding:12px; margin-bottom:8px;
-}
-.import-panel.show { display:flex; }
-.import-label { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; }
-.import-ta {
-  background:var(--card2); border:none; outline:none;
-  color:var(--text); font:inherit; font-size:14px; line-height:1.45;
-  border-radius:10px; padding:10px 12px; resize:none;
-  min-height:80px; max-height:180px;
-}
-.import-ta::placeholder { color:var(--text2); }
-.import-actions { display:flex; gap:8px; justify-content:flex-end; }
-.import-btn {
-  border:none; border-radius:999px; padding:7px 16px;
-  font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
-}
-.import-btn.apply { background:var(--accent); color:#000; }
-.import-btn.cancel { background:var(--card2); color:var(--text2); }
+/* Import button active state */
+.attach-btn.importing { color:var(--accent); }
 
 /* ── Toast ──────────────────────────────────────── */
 .toast {
@@ -316,15 +296,6 @@ textarea.composer::placeholder { color:var(--text2); }
   <div class="screen" id="screen-chat">
     <div class="thread" id="thread"></div>
     <div class="input-area">
-      <!-- Import context panel -->
-      <div class="import-panel" id="importPanel">
-        <div class="import-label">Paste context — prepended to next message</div>
-        <textarea class="import-ta" id="importTa" placeholder="Paste any text here…" rows="4"></textarea>
-        <div class="import-actions">
-          <button class="import-btn cancel" id="importCancel">Cancel</button>
-          <button class="import-btn apply" id="importApply">Attach</button>
-        </div>
-      </div>
       <div class="img-bar" id="imgBar">
         <img class="img-thumb" id="imgThumb" src="" alt=""/>
         <span class="img-fname" id="imgFname"></span>
@@ -590,28 +561,62 @@ function grow() {
 }
 composer.addEventListener('input', grow);
 
-// ── Import context panel ──────────────────────────────────────
-let importContext = ''; // text to prepend to next message
-const importPanel  = $('importPanel');
-const importTa     = $('importTa');
-const importBtn    = $('importBtn');
+// ── Import from another AI ────────────────────────────────────
+const importBtn = $('importBtn');
 
-importBtn.onclick = () => {
-  importPanel.classList.toggle('show');
-  if (importPanel.classList.contains('show')) importTa.focus();
-};
-$('importCancel').onclick = () => {
-  importPanel.classList.remove('show');
-  importTa.value = '';
-  importContext = '';
-  importBtn.style.color = '';
-};
-$('importApply').onclick = () => {
-  importContext = importTa.value.trim();
-  importPanel.classList.remove('show');
-  // accent the import button to signal context is attached
-  importBtn.style.color = importContext ? 'var(--accent)' : '';
-  if (importContext) toast('Context attached — send your message');
+importBtn.onclick = async () => {
+  const text = prompt('Paste text from another AI (ChatGPT, Gemini, etc.):');
+  if (!text?.trim()) return;
+
+  const source = prompt('Source name (e.g. ChatGPT, Gemini, Grok):') || 'Unknown AI';
+  if (!source) return;
+
+  // Show "Importing…" in thread
+  const statusWrap = document.createElement('div');
+  statusWrap.className = 'msg assistant';
+  const statusBbl = document.createElement('div');
+  statusBbl.className = 'bubble ai-bbl';
+  statusBbl.style.color = 'var(--text2)';
+  statusBbl.textContent = `Importing from ${source}…`;
+  statusWrap.appendChild(statusBbl);
+  thread.appendChild(statusWrap);
+  thread.scrollTop = thread.scrollHeight;
+
+  importBtn.disabled = true;
+  importBtn.classList.add('importing');
+
+  try {
+    const res = await fetch(`${WORKER}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        collection: 'memory_core',
+        documents: [{ source: source.trim(), content: text.trim() }],
+      }),
+    });
+
+    const data = await res.json();
+
+    statusWrap.remove();
+
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    const count = data.imported ?? 0;
+    const result = `Imported ${count} memory item${count !== 1 ? 's' : ''} from ${source}.\n\nPreview: ${text.trim().substring(0, 120)}${text.length > 120 ? '…' : ''}`;
+
+    messages.push({ role: 'assistant', text: result, saved: true, dismissed: true });
+    saveLocal();
+    renderAll();
+
+  } catch (err) {
+    statusWrap.remove();
+    messages.push({ role: 'assistant', text: `Import failed: ${err.message}`, saved: true, dismissed: true });
+    saveLocal();
+    renderAll();
+  } finally {
+    importBtn.disabled = false;
+    importBtn.classList.remove('importing');
+  }
 };
 
 // ── Image attach ─────────────────────────────────────────────
@@ -776,15 +781,6 @@ async function send() {
   thread.appendChild(typing);
   thread.scrollTop = thread.scrollHeight;
 
-  // prepend any attached import context
-  let messageText = text;
-  if (importContext) {
-    messageText = `[Context]\n${importContext}\n\n[Message]\n${text}`;
-    importContext = '';
-    importTa.value = '';
-    importBtn.style.color = '';
-  }
-
   // detect /think before sending so streaming badge can show immediately
   const isThinkRequest = text.trimStart().startsWith('/think');
 
@@ -794,7 +790,7 @@ async function send() {
   let done = {};
 
   try {
-    const body = { message: messageText || '', session_id: sessionId, scope };
+    const body = { message: text || '', session_id: sessionId, scope };
     if (img) body.image = img.base64;
 
     const res = await fetch(`${WORKER}/chat`, {
