@@ -22,7 +22,7 @@ const OPENROUTER_TITLE = 'GE Generator Engine';
 const MODELS = {
   DEEP:       'anthropic/claude-opus-4-6',      // strategy
   DEFAULT:    'anthropic/claude-sonnet-4-6',    // execute mode chat
-  LOGIC:      'openai/gpt-4o',                  // logic / think mode
+  LOGIC:      'openai/gpt-5.4',                  // logic / think mode
   BACKGROUND: 'google/gemini-2.5-flash',        // summarize / classifier
 };
 

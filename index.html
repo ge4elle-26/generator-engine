@@ -261,14 +261,30 @@ textarea.composer::placeholder { color:var(--text2); }
   transition:background .15s, color .15s;
 }
 .s-scope.on { background:var(--accent); color:#000; }
+.s-scope-add { color:var(--accent); font-size:18px; padding:6px 12px; }
 
-/* danger button */
-.s-danger {
-  width:100%; padding:15px 16px; border:none;
+/* ── Import panel ───────────────────────────────── */
+.import-panel {
+  display:none; flex-direction:column; gap:8px;
   background:var(--card); border-radius:var(--r);
-  color:#FF453A; font:inherit; font-size:15px; font-weight:600;
-  cursor:pointer; text-align:left;
+  padding:12px; margin-bottom:8px;
 }
+.import-panel.show { display:flex; }
+.import-label { font-size:12px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; }
+.import-ta {
+  background:var(--card2); border:none; outline:none;
+  color:var(--text); font:inherit; font-size:14px; line-height:1.45;
+  border-radius:10px; padding:10px 12px; resize:none;
+  min-height:80px; max-height:180px;
+}
+.import-ta::placeholder { color:var(--text2); }
+.import-actions { display:flex; gap:8px; justify-content:flex-end; }
+.import-btn {
+  border:none; border-radius:999px; padding:7px 16px;
+  font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.import-btn.apply { background:var(--accent); color:#000; }
+.import-btn.cancel { background:var(--card2); color:var(--text2); }
 
 /* ── Toast ──────────────────────────────────────── */
 .toast {
@@ -300,12 +316,29 @@ textarea.composer::placeholder { color:var(--text2); }
   <div class="screen" id="screen-chat">
     <div class="thread" id="thread"></div>
     <div class="input-area">
+      <!-- Import context panel -->
+      <div class="import-panel" id="importPanel">
+        <div class="import-label">Paste context — prepended to next message</div>
+        <textarea class="import-ta" id="importTa" placeholder="Paste any text here…" rows="4"></textarea>
+        <div class="import-actions">
+          <button class="import-btn cancel" id="importCancel">Cancel</button>
+          <button class="import-btn apply" id="importApply">Attach</button>
+        </div>
+      </div>
       <div class="img-bar" id="imgBar">
         <img class="img-thumb" id="imgThumb" src="" alt=""/>
         <span class="img-fname" id="imgFname"></span>
         <button class="img-rm" id="imgRm">✕</button>
       </div>
       <div class="input-row">
+        <button class="attach-btn" id="importBtn" title="Import context">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+        </button>
         <textarea class="composer" id="composer" rows="1" placeholder="Message GE…"></textarea>
         <button class="attach-btn" id="attachBtn" title="Attach image">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -350,9 +383,7 @@ textarea.composer::placeholder { color:var(--text2); }
         <div class="s-label">Scope</div>
         <div class="scope-grid" id="scopeGrid">
           <button class="s-scope on" data-scope="global">Global</button>
-          <button class="s-scope" data-scope="meatsource">MEATSOURCE</button>
-          <button class="s-scope" data-scope="ge-connect">GE Connect</button>
-          <button class="s-scope" data-scope="affiliate">Affiliate</button>
+          <button class="s-scope s-scope-add" id="scopeAddBtn" title="Add scope">＋</button>
         </div>
       </div>
 
@@ -372,7 +403,6 @@ textarea.composer::placeholder { color:var(--text2); }
         </div>
       </div>
 
-      <button class="s-danger" id="clearBtn">Clear Chat History</button>
     </div>
   </div>
 
@@ -432,7 +462,6 @@ const msgCountDis = $('msgCountDisplay');
 const memList     = $('memList');
 const memEmpty    = $('memEmpty');
 const toastEl     = $('toast');
-const clearBtn    = $('clearBtn');
 const scopeGrid   = $('scopeGrid');
 
 // ── Theme ────────────────────────────────────────────────────
@@ -448,17 +477,92 @@ themeBtn.onclick = () => applyTheme(!isDark);
 themeTog.onchange = e => applyTheme(e.target.checked);
 
 // ── Scope ────────────────────────────────────────────────────
+let customScopes = JSON.parse(localStorage.getItem('ge_custom_scopes') || '[]');
+
+function saveCustomScopes() {
+  localStorage.setItem('ge_custom_scopes', JSON.stringify(customScopes));
+}
+
+function renderScopes() {
+  // Remove all except Global and the add button
+  scopeGrid.querySelectorAll('.s-scope:not([data-scope="global"]):not(.s-scope-add)').forEach(el => el.remove());
+
+  // Insert custom scopes before the add button
+  const addBtn = $('scopeAddBtn');
+  customScopes.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 's-scope';
+    btn.dataset.scope = name;
+    btn.textContent = name;
+    btn.classList.toggle('on', scope === name);
+
+    // Long-press to rename or delete
+    let pressTimer;
+    const startPress = () => { pressTimer = setTimeout(() => showScopeMenu(name, btn), 500); };
+    const cancelPress = () => clearTimeout(pressTimer);
+    btn.addEventListener('mousedown', startPress);
+    btn.addEventListener('touchstart', startPress, { passive: true });
+    btn.addEventListener('mouseup', cancelPress);
+    btn.addEventListener('mouseleave', cancelPress);
+    btn.addEventListener('touchend', cancelPress);
+
+    scopeGrid.insertBefore(btn, addBtn);
+  });
+
+  // Highlight active
+  scopeGrid.querySelectorAll('.s-scope').forEach(p =>
+    p.classList.toggle('on', p.dataset.scope === scope));
+}
+
+function showScopeMenu(name, btn) {
+  const action = prompt(`Scope: "${name}"\n\nType new name to rename, or type DELETE to remove:`);
+  if (action === null) return;
+  if (action.trim().toUpperCase() === 'DELETE') {
+    customScopes = customScopes.filter(s => s !== name);
+    if (scope === name) applyScope('global');
+    saveCustomScopes();
+    renderScopes();
+  } else if (action.trim()) {
+    const newName = action.trim();
+    customScopes = customScopes.map(s => s === name ? newName : s);
+    if (scope === name) scope = newName;
+    saveCustomScopes();
+    renderScopes();
+  }
+}
+
 function applyScope(s) {
   scope = s;
   localStorage.setItem('ge_scope', s);
-  document.querySelectorAll('.s-scope').forEach(p =>
+  scopeGrid.querySelectorAll('.s-scope').forEach(p =>
     p.classList.toggle('on', p.dataset.scope === s));
 }
-applyScope(scope);
+
+// Global scope click
+scopeGrid.querySelector('[data-scope="global"]').onclick = () => applyScope('global');
+
+// Delegate clicks on dynamic custom scope pills
 scopeGrid.addEventListener('click', e => {
-  const p = e.target.closest('.s-scope');
-  if (p) applyScope(p.dataset.scope);
+  const p = e.target.closest('.s-scope[data-scope]');
+  if (p && p.dataset.scope !== 'global' && !p.classList.contains('s-scope-add')) applyScope(p.dataset.scope);
 });
+
+// Add scope button
+$('scopeAddBtn').onclick = () => {
+  const name = prompt('New scope name:');
+  if (!name?.trim()) return;
+  const trimmed = name.trim();
+  if (customScopes.includes(trimmed) || trimmed.toLowerCase() === 'global') {
+    toast('Scope already exists'); return;
+  }
+  customScopes.push(trimmed);
+  saveCustomScopes();
+  renderScopes();
+  applyScope(trimmed);
+};
+
+renderScopes();
+applyScope(scope);
 
 // ── Nav ──────────────────────────────────────────────────────
 const navItems = document.querySelectorAll('.nav-item');
@@ -485,6 +589,30 @@ function grow() {
   composer.style.height = Math.min(composer.scrollHeight, 96) + 'px';
 }
 composer.addEventListener('input', grow);
+
+// ── Import context panel ──────────────────────────────────────
+let importContext = ''; // text to prepend to next message
+const importPanel  = $('importPanel');
+const importTa     = $('importTa');
+const importBtn    = $('importBtn');
+
+importBtn.onclick = () => {
+  importPanel.classList.toggle('show');
+  if (importPanel.classList.contains('show')) importTa.focus();
+};
+$('importCancel').onclick = () => {
+  importPanel.classList.remove('show');
+  importTa.value = '';
+  importContext = '';
+  importBtn.style.color = '';
+};
+$('importApply').onclick = () => {
+  importContext = importTa.value.trim();
+  importPanel.classList.remove('show');
+  // accent the import button to signal context is attached
+  importBtn.style.color = importContext ? 'var(--accent)' : '';
+  if (importContext) toast('Context attached — send your message');
+};
 
 // ── Image attach ─────────────────────────────────────────────
 attachBtn.onclick = () => imageInput.click();
@@ -648,6 +776,15 @@ async function send() {
   thread.appendChild(typing);
   thread.scrollTop = thread.scrollHeight;
 
+  // prepend any attached import context
+  let messageText = text;
+  if (importContext) {
+    messageText = `[Context]\n${importContext}\n\n[Message]\n${text}`;
+    importContext = '';
+    importTa.value = '';
+    importBtn.style.color = '';
+  }
+
   // detect /think before sending so streaming badge can show immediately
   const isThinkRequest = text.trimStart().startsWith('/think');
 
@@ -657,7 +794,7 @@ async function send() {
   let done = {};
 
   try {
-    const body = { message: text || '', session_id: sessionId, scope };
+    const body = { message: messageText || '', session_id: sessionId, scope };
     if (img) body.image = img.base64;
 
     const res = await fetch(`${WORKER}/chat`, {
@@ -842,15 +979,6 @@ async function loadMemory() {
     empty.textContent = 'Could not load session memory.';
   }
 }
-
-// ── Clear history ────────────────────────────────────────────
-clearBtn.onclick = () => {
-  if (!confirm('Clear local chat history?')) return;
-  messages = [];
-  saveLocal();
-  renderAll();
-  toast('History cleared');
-};
 
 // ── Boot ─────────────────────────────────────────────────────
 async function boot() {
