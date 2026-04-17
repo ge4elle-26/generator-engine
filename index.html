@@ -552,20 +552,29 @@ function renderMsg(msg, idx) {
       ok.className = 'save-chip ok';
       ok.textContent = 'Save to memory';
       ok.onclick = async () => {
+        ok.disabled = true;
+        ok.textContent = 'Saving…';
         try {
           await fetch(`${WORKER}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              collection: 'memory_core',
-              data: { type: 'fact', title: msg.text.substring(0, 60), content: msg.text, source: 'chat_save', session_id: sessionId }
+              content:    msg.text,
+              scope:      msg.scope || scope,
+              tags:       [],
+              pinned:     false,
+              session_id: sessionId,
             })
           });
-          toast('Saved to memory');
-        } catch { toast('Save failed'); }
-        messages[idx].saved = true;
-        saveLocal();
-        renderAll();
+          ok.textContent = 'Saved ✓';
+          no.remove();
+          messages[idx].saved = true;
+          saveLocal();
+        } catch {
+          ok.textContent = 'Save to memory';
+          ok.disabled = false;
+          toast('Save failed — try again');
+        }
       };
 
       const no = document.createElement('button');
@@ -574,7 +583,7 @@ function renderMsg(msg, idx) {
       no.onclick = () => {
         messages[idx].dismissed = true;
         saveLocal();
-        renderAll();
+        row.remove();
       };
 
       row.appendChild(ok);
@@ -639,6 +648,9 @@ async function send() {
   thread.appendChild(typing);
   thread.scrollTop = thread.scrollHeight;
 
+  // detect /think before sending so streaming badge can show immediately
+  const isThinkRequest = text.trimStart().startsWith('/think');
+
   let fullText = '';
   let streamWrap = null;
   let streamBbl  = null;
@@ -683,10 +695,11 @@ async function send() {
                 typing.remove();
                 streamWrap = document.createElement('div');
                 streamWrap.className = 'msg assistant';
-                // think mode badge during stream if /think prefix
-                if (text.trimStart().startsWith('/think')) {
+                // provisional think badge shown as soon as first token arrives
+                if (isThinkRequest) {
                   const b = document.createElement('div');
                   b.className = 'think-badge';
+                  b.id = 'stream-think-badge';
                   b.innerHTML = `<span class="think-dot"></span>Thinking…`;
                   streamWrap.appendChild(b);
                 }
@@ -707,6 +720,42 @@ async function send() {
               }
               if (chunk.model) modelDis.textContent = shortModel(chunk.model);
               if (streamBbl) streamBbl.classList.remove('streaming');
+              // finalize or remove the provisional think badge based on server response
+              const badge = document.getElementById('stream-think-badge');
+              if (badge) {
+                if (chunk.think_mode) {
+                  badge.innerHTML = `<span class="think-dot"></span>Think Mode`;
+                  badge.removeAttribute('id');
+                } else {
+                  badge.remove();
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // drain any data still buffered when the reader closes
+      // (the done chunk can arrive in the last network chunk without a trailing newline pair)
+      if (buf.trim()) {
+        for (const line of buf.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const chunk = JSON.parse(line.slice(6));
+            if (chunk.type === 'done') {
+              done = chunk;
+              if (chunk.session_id) { sessionId = chunk.session_id; sessDisplay.textContent = chunk.session_id; }
+              if (chunk.model) modelDis.textContent = shortModel(chunk.model);
+              if (streamBbl) streamBbl.classList.remove('streaming');
+              const badge = document.getElementById('stream-think-badge');
+              if (badge) {
+                if (chunk.think_mode) {
+                  badge.innerHTML = `<span class="think-dot"></span>Think Mode`;
+                  badge.removeAttribute('id');
+                } else {
+                  badge.remove();
+                }
+              }
             }
           } catch {}
         }

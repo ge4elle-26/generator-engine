@@ -839,15 +839,32 @@ async function handleSave(request, env) {
     return errorResponse('Invalid JSON body');
   }
 
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+
+  // New format: flat { content, scope, tags, pinned, session_id }
+  if (body.content !== undefined) {
+    const { content, scope, tags, pinned, session_id } = body;
+    if (!content || typeof content !== 'string')
+      return errorResponse('content (string) is required');
+    const newId = await db.add('memory', {
+      content,
+      scope: scope || 'global',
+      tags: Array.isArray(tags) ? tags : [],
+      pinned: pinned === true,
+      session_id: session_id || null,
+      createdAt: now,
+    });
+    return jsonResponse({ id: newId, collection: 'memory', action: 'created' });
+  }
+
+  // Legacy format: { collection, id, data }
   const { collection, id, data } = body;
   if (!collection || typeof collection !== 'string')
     return errorResponse('collection (string) is required');
   if (!data || typeof data !== 'object')
     return errorResponse('data (object) is required');
-
-  const db = await initFirestore(env);
-  const payload = { ...data, savedAt: new Date().toISOString() };
-
+  const payload = { ...data, savedAt: now };
   if (id) {
     await db.set(collection, String(id), payload);
     return jsonResponse({ id: String(id), collection, action: 'saved' });
