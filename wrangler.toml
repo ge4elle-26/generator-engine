@@ -1,0 +1,51 @@
+name            = "ge-ai"
+main            = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Workers free plan: 100k req/day | Paid: unlimited
+# No Node.js compat needed — uses Web Crypto API natively
+
+# ---------------------------------------------------------------------------
+# Non-secret vars (safe to commit)
+# ---------------------------------------------------------------------------
+[vars]
+FIREBASE_PROJECT_ID = "generator-engine-ge-brain-mem"
+
+# ---------------------------------------------------------------------------
+# Secrets — set once via CLI, never stored in this file:
+#
+#   wrangler secret put CLAUDE_API_KEY
+#   wrangler secret put FIREBASE_SERVICE_ACCOUNT
+#   wrangler secret put ADMIN_SEED_TOKEN
+#
+# FIREBASE_SERVICE_ACCOUNT must be the full JSON string of the service account
+# key file (copy the entire contents of the downloaded .json file).
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Observability
+# ---------------------------------------------------------------------------
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# Environments
+# ---------------------------------------------------------------------------
+
+# Staging — deploy with: wrangler deploy --env staging
+[env.staging]
+name = "ge-ai-staging"
+vars = { FIREBASE_PROJECT_ID = "generator-engine-ge-brain-mem" }
+
+# Production — deploy with: wrangler deploy --env production
+[env.production]
+name = "ge-ai"
+vars = { FIREBASE_PROJECT_ID = "generator-engine-ge-brain-mem" }
+
+# ---------------------------------------------------------------------------
+# Routes (optional — configure after deploying to a custom domain)
+# Uncomment and fill in your zone / pattern when ready.
+# ---------------------------------------------------------------------------
+# [[routes]]
+# pattern  = "api.yourdomain.com/ai/*"
+# zone_name = "yourdomain.com"
