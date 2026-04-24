@@ -15,6 +15,15 @@
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIRESTORE_SCOPE = 'https://www.googleapis.com/auth/datastore';
+const FIREBASE_JWK_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
+// Module-level JWK cache (lives as long as the worker instance)
+let _jwkCache = null;
+let _jwkCacheAt = 0;
+
+// Phase 9: Scoped memory cache — keyed by scope, 5-minute TTL
+const _memoryCache = new Map(); // scope → { items: [], cachedAt: number }
+const MEMORY_CACHE_TTL = 5 * 60 * 1000;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_REFERER = 'https://generator-engine.pages.dev';
 const OPENROUTER_TITLE = 'GE Generator Engine';
@@ -27,6 +36,11 @@ const MODELS = {
 };
 
 const SESSION_MESSAGE_LIMIT = 10;
+
+const VALID_INTENTS = new Set([
+  'save_memory', 'recall_memory', 'update_task_state',
+  'writing', 'research', 'strategy_logic', 'fallback',
+]);
 
 // ---------------------------------------------------------------------------
 // JWT / Google Auth
@@ -284,18 +298,21 @@ async function classifyIntent(apiKey, message) {
   try {
     const res = await callClaude(apiKey, {
       model: MODELS.BACKGROUND,
-      system: `Classify the user message into exactly one intent. Reply with a single word only.
-- chat: general questions, facts, quick lookups, greetings
-- strategy: business planning, decisions, goals, growth, prioritization
-- logic: step-by-step reasoning, calculations, workflows, planning sequences
-- summarize: requests to summarize, recap, list, or condense content`,
+      system: `Classify the user message into exactly one intent. Reply with a single word only, no punctuation.
+- save_memory: user wants to save, store, or remember a fact, decision, or information
+- recall_memory: user wants to retrieve, recall, or look up something previously saved
+- update_task_state: user wants to update, complete, create, or change a task or action item
+- writing: content creation, copywriting, social media posts, captions, scripts, emails
+- research: looking up info, comparison, investigation, asking factual or analytical questions
+- strategy_logic: business planning, decisions, goals, calculations, step-by-step reasoning, prioritization
+- fallback: general chat, greetings, unclear, or anything not covered above`,
       messages: [{ role: 'user', content: message }],
-      maxTokens: 5,
+      maxTokens: 10,
     });
-    const intent = res.content[0].text.trim().toLowerCase().split(/\s/)[0];
-    return ['chat', 'strategy', 'logic', 'summarize'].includes(intent) ? intent : 'chat';
+    const raw = res.content[0].text.trim().toLowerCase().split(/\W/)[0];
+    return VALID_INTENTS.has(raw) ? raw : 'fallback';
   } catch {
-    return 'chat';
+    return 'fallback';
   }
 }
 
@@ -328,20 +345,28 @@ async function detectScope(apiKey, message, sessionContext = '') {
 // ---------------------------------------------------------------------------
 
 function routeModel(intent, isThinkMode, modelPreference) {
-  if (modelPreference === 'opus')     return MODELS.DEEP;     // explicit deep override
-  if (isThinkMode)                    return MODELS.LOGIC;    // /think → GPT-4o
-  if (intent === 'strategy')          return MODELS.DEEP;     // strategy → Opus
-  if (intent === 'logic')             return MODELS.LOGIC;    // logic → GPT-4o
-  if (intent === 'summarize')         return MODELS.BACKGROUND; // summarize → Gemini
-  return MODELS.DEFAULT;                                       // chat → Sonnet
+  if (modelPreference === 'opus')          return MODELS.DEEP;
+  if (isThinkMode)                         return MODELS.LOGIC;
+  if (intent === 'strategy_logic')         return MODELS.DEEP;
+  if (intent === 'research')               return MODELS.LOGIC;
+  if (intent === 'save_memory'   ||
+      intent === 'recall_memory' ||
+      intent === 'update_task_state')      return MODELS.BACKGROUND;
+  return MODELS.DEFAULT; // writing, fallback, unknown
 }
 
 // ---------------------------------------------------------------------------
 // Claude API
 // ---------------------------------------------------------------------------
 
-function buildOpenRouterMessages(system, messages) {
-  return system ? [{ role: 'system', content: system }, ...messages] : messages;
+// Phase 9: Prompt caching — Anthropic models support cache_control on system prompt
+function buildOpenRouterMessages(system, messages, model = '') {
+  if (!system) return messages;
+  const isAnthropic = model.startsWith('anthropic/');
+  const systemContent = isAnthropic
+    ? [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }]
+    : system;
+  return [{ role: 'system', content: systemContent }, ...messages];
 }
 
 // Non-streaming call — used by extractMemoryItems and fallback
@@ -354,7 +379,7 @@ async function callClaude(apiKey, { model, system, messages, maxTokens = 2048 })
       'HTTP-Referer': OPENROUTER_REFERER,
       'X-Title': OPENROUTER_TITLE,
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens, messages: buildOpenRouterMessages(system, messages) }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, messages: buildOpenRouterMessages(system, messages, model) }),
   });
   if (!res.ok) {
     const errBody = await res.text();
@@ -377,9 +402,60 @@ async function callClaudeStream(apiKey, { model, system, messages, maxTokens = 2
       'HTTP-Referer': OPENROUTER_REFERER,
       'X-Title': OPENROUTER_TITLE,
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens, stream: true, messages: buildOpenRouterMessages(system, messages) }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, stream: true, messages: buildOpenRouterMessages(system, messages, model) }),
   });
   return res;
+}
+
+// Phase 10: Scoped memory — pinned items always first, then recent unpinned
+async function loadScopedMemory(db, scope) {
+  const now = Date.now();
+  const cached = _memoryCache.get(scope);
+  if (cached && now - cached.cachedAt < MEMORY_CACHE_TTL) {
+    console.log(`[ge-ai] memory cache HIT scope=${scope} (${cached.items.length} items)`);
+    return cached.items;
+  }
+
+  const scopeFilter = {
+    fieldFilter: { field: { fieldPath: 'scope' }, op: 'EQUAL', value: { stringValue: scope } },
+  };
+
+  const [pinnedItems, unpinnedItems] = await Promise.all([
+    db.query('', 'memory', {
+      filters: [
+        scopeFilter,
+        { fieldFilter: { field: { fieldPath: 'pinned' }, op: 'EQUAL', value: { booleanValue: true } } },
+      ],
+      orderBy: { field: 'createdAt', direction: 'DESCENDING' },
+      limit: 20,
+    }),
+    db.query('', 'memory', {
+      filters: [
+        scopeFilter,
+        { fieldFilter: { field: { fieldPath: 'pinned' }, op: 'EQUAL', value: { booleanValue: false } } },
+      ],
+      orderBy: { field: 'createdAt', direction: 'DESCENDING' },
+      limit: 10,
+    }),
+  ]);
+
+  const items = [...pinnedItems, ...unpinnedItems];
+  _memoryCache.set(scope, { items, cachedAt: now });
+  console.log(`[ge-ai] memory cache MISS scope=${scope} — ${pinnedItems.length} pinned + ${unpinnedItems.length} unpinned = ${items.length} items`);
+  return items;
+}
+
+function invalidateScopeCache(scope) {
+  _memoryCache.delete(scope);
+  console.log(`[ge-ai] memory cache invalidated scope=${scope}`);
+}
+
+async function withRetry(fn, retries = 1, delayMs = 500) {
+  try { return await fn(); } catch (err) {
+    if (retries <= 0) throw err;
+    await new Promise(r => setTimeout(r, delayMs));
+    return withRetry(fn, retries - 1, delayMs);
+  }
 }
 
 // Smart memory: always load rules+prefs (max 5 each), plus keyword matches (max 5)
@@ -423,6 +499,75 @@ async function loadRelevantMemory(db, userMessage) {
 }
 
 // ---------------------------------------------------------------------------
+// Firebase ID token verification
+// ---------------------------------------------------------------------------
+
+async function getFirebaseJwks() {
+  const now = Date.now();
+  if (_jwkCache && now - _jwkCacheAt < 3_600_000) return _jwkCache;
+  const res = await fetch(FIREBASE_JWK_URL);
+  if (!res.ok) throw new Error('Failed to fetch Firebase public keys');
+  _jwkCache = await res.json();
+  _jwkCacheAt = now;
+  return _jwkCache;
+}
+
+function b64urlToStr(s) {
+  return atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+}
+
+async function verifyFirebaseToken(token, projectId) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Malformed token');
+
+  let header, payload;
+  try {
+    header  = JSON.parse(b64urlToStr(parts[0]));
+    payload = JSON.parse(b64urlToStr(parts[1]));
+  } catch {
+    throw new Error('Invalid token encoding');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.exp < now)                                throw new Error('Token expired');
+  if (payload.aud !== projectId)                        throw new Error('Invalid audience');
+  if (payload.iss !== `https://securetoken.google.com/${projectId}`) throw new Error('Invalid issuer');
+  if (!payload.sub)                                     throw new Error('Missing subject');
+
+  const jwks = await getFirebaseJwks();
+  const jwk  = (jwks.keys || []).find(k => k.kid === header.kid);
+  if (!jwk) throw new Error('Public key not found');
+
+  const publicKey = await crypto.subtle.importKey(
+    'jwk', jwk,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['verify']
+  );
+
+  const sigBytes = Uint8Array.from(b64urlToStr(parts[2]), c => c.charCodeAt(0));
+  const valid = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5', publicKey, sigBytes,
+    new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
+  );
+  if (!valid) throw new Error('Signature invalid');
+
+  return { uid: payload.sub, email: payload.email || null };
+}
+
+async function requireAuth(request, env) {
+  const authHeader = request.headers.get('Authorization') || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return { authError: errorResponse('Unauthorized', 401) };
+  }
+  try {
+    const user = await verifyFirebaseToken(authHeader.slice(7), env.FIREBASE_PROJECT_ID);
+    return { user };
+  } catch (e) {
+    return { authError: errorResponse(`Unauthorized: ${e.message}`, 401) };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
@@ -452,10 +597,44 @@ function corsPreflightResponse() {
   });
 }
 
+// SSE response carrying a controlled error — frontend handles it identically to a normal response
+function sseErrorResponse(message, sessionId, intent, model, scope, statusCode = 'error') {
+  const enc = new TextEncoder();
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  (async () => {
+    try {
+      await writer.write(enc.encode(`data: ${JSON.stringify({ type: 'text', content: message })}\n\n`));
+      await writer.write(enc.encode(`data: ${JSON.stringify({
+        type:          'done',
+        message,
+        intent:        intent  || 'fallback',
+        model:         model   || 'unknown',
+        scope:         scope   || 'global',
+        memory_loaded: 0,
+        session_id:    sessionId || '',
+        status:        statusCode,
+        runtime_degraded: true,
+      })}\n\n`));
+    } finally {
+      await writer.close();
+    }
+  })();
+  return new Response(readable, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Transfer-Encoding': 'chunked',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Shared Firestore init helper
 // ---------------------------------------------------------------------------
-
 
 async function initFirestore(env) {
   const serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
@@ -466,6 +645,67 @@ async function initFirestore(env) {
 // ---------------------------------------------------------------------------
 // Route handlers
 // ---------------------------------------------------------------------------
+
+// POST /summarize-session — summarize a session and persist to session_summaries/{session_id}
+async function handleSummarizeSession(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+
+  const { session_id, scope } = body;
+  if (!session_id) return errorResponse('session_id is required');
+
+  const db = await initFirestore(env);
+
+  const msgs = await db.query(`sessions/${session_id}`, 'messages', {
+    orderBy: { field: 'createdAt', direction: 'ASCENDING' },
+    limit: 50,
+  }).catch(() => []);
+
+  if (msgs.length === 0) return jsonResponse({ skipped: true, reason: 'no messages' });
+
+  const transcript = msgs
+    .map(m => `${m.role === 'user' ? 'User' : 'GE'}: ${(m.content || '').substring(0, 400)}`)
+    .join('\n');
+
+  let summary = '';
+  try {
+    const res = await callClaude(env.OPENROUTER_API_KEY, {
+      model: MODELS.BACKGROUND,
+      system: 'Summarize this conversation in 3-5 sentences. Focus on key decisions made, facts shared, and context that matters for future sessions. Be factual and concise.',
+      messages: [{ role: 'user', content: transcript }],
+      maxTokens: 300,
+    });
+    summary = res.content[0]?.text?.trim() || '';
+  } catch (e) {
+    console.error('[ge-ai] summarize failed:', e.message);
+    return errorResponse('Summarization failed', 500);
+  }
+
+  const now = new Date().toISOString();
+  await db.set('session_summaries', session_id, {
+    summary,
+    session_id,
+    scope: scope || 'global',
+    created_at: now,
+  });
+
+  return jsonResponse({ session_id, scope: scope || 'global', summary });
+}
+
+// GET /active-session — returns the last active session for the authenticated user
+async function handleActiveSession(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  const db = await initFirestore(env);
+  const data = await db.get('users', user.uid).catch(() => null);
+
+  if (!data?.session_id) return jsonResponse({ active: false });
+  return jsonResponse({ active: true, session_id: data.session_id, scope: data.scope || 'global' });
+}
 
 // GET /health
 async function handleHealth() {
@@ -482,6 +722,9 @@ async function handleHealth() {
 
 // POST /chat
 async function handleChat(request, env, ctx) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();
@@ -502,19 +745,27 @@ async function handleChat(request, env, ctx) {
 
   const db = await initFirestore(env);
   const date = getManilaDateString();
-  const sessionId = session_id || buildSessionId(date);
+  const sessionId = session_id || crypto.randomUUID();
 
   // Load system config + smart memory + classify intent + detect scope — all in parallel
+  // Phase 4.6: Firestore read failures are isolated — degrade gracefully, never abort
   const recentContext = '';
+  let firestoreDegraded = false;
+  const fsReadFail = label => e => {
+    console.error(`[ge-ai] Firestore read failed (${label}):`, e.message);
+    firestoreDegraded = true;
+    return null;
+  };
+
   const [identity, sysRules, sysPrefs, relevantMemory, recentRaw, intent, scope] = await Promise.all([
-    db.get('system_config', 'identity'),
-    db.get('system_config', 'rules'),
-    db.get('system_config', 'preferences'),
-    loadRelevantMemory(db, cleanMessage),
+    db.get('system_config', 'identity').catch(fsReadFail('identity')),
+    db.get('system_config', 'rules').catch(fsReadFail('rules')),
+    db.get('system_config', 'preferences').catch(fsReadFail('preferences')),
+    withRetry(() => loadRelevantMemory(db, cleanMessage)).catch(e => { console.error('[ge-ai] memory read failed after retry:', e.message); firestoreDegraded = true; return []; }),
     db.query(`sessions/${sessionId}`, 'messages', {
-      orderBy: { field: 'timestamp', direction: 'DESCENDING' },
+      orderBy: { field: 'createdAt', direction: 'DESCENDING' },
       limit: SESSION_MESSAGE_LIMIT,
-    }),
+    }).catch(e => { console.error('[ge-ai] session read failed:', e.message); firestoreDegraded = true; return []; }),
     classifyIntent(env.OPENROUTER_API_KEY, cleanMessage),
     detectScope(env.OPENROUTER_API_KEY, cleanMessage, recentContext),
   ]);
@@ -522,8 +773,38 @@ async function handleChat(request, env, ctx) {
   let model = routeModel(intent, isThinkMode, model_preference);
   if (image && model === MODELS.BACKGROUND) model = MODELS.DEFAULT;
 
+  // Phase 4: Normalize to safe defaults — never let a bad value break the pipeline
+  const validatedIntent = VALID_INTENTS.has(intent) ? intent : 'fallback';
+  const validatedScope  = scope  || 'global';
+  const validatedModel  = model  || MODELS.DEFAULT;
+  if (validatedIntent !== intent || !scope || !model) {
+    console.warn(`[ge-ai] validation normalised: intent=${intent}→${validatedIntent} scope=${scope||'(missing)'} model=${model||'(missing)'}`);
+  }
+
+  // Phase 10: Load scoped memory (pinned first) and previous session summary in parallel
+  const [scopedMemory, prevSummaryItems] = await Promise.all([
+    withRetry(() => loadScopedMemory(db, validatedScope)).catch(e => {
+      console.error('[ge-ai] scoped memory load failed after retry:', e.message);
+      return [];
+    }),
+    db.query('', 'session_summaries', {
+      filters: [{ fieldFilter: { field: { fieldPath: 'scope' }, op: 'EQUAL', value: { stringValue: validatedScope } } }],
+      orderBy: { field: 'created_at', direction: 'DESCENDING' },
+      limit: 1,
+    }).catch(() => []),
+  ]);
+  const prevSummary = prevSummaryItems[0] || null;
+
   // Build system prompt
   const systemSections = [];
+
+  // GE self-awareness — always first block
+  systemSections.push(`# GE — Generator Engine V2.2
+System: Generator Engine V2.2 | Owner: Gerald Reyes | Date (Manila): ${date} | Scope: ${validatedScope}
+Phases complete: 1, 2, 3, 3.5, 4, 4.5, 4.6, 5, 6, 6.5, 8, 9, 10
+Infrastructure: Cloudflare Worker + Pages · OpenRouter multi-model · Firebase Auth + Firestore
+Models: claude-opus-4-6 (strategy) · claude-sonnet-4-6 (execute) · gpt-5.4 (logic/think) · gemini-2.5-flash (background)`);
+
   if (identity?.content) systemSections.push(`# Identity\n${identity.content}`);
   if (sysRules?.content) systemSections.push(`# Rules\n${sysRules.content}`);
   if (sysPrefs?.content) systemSections.push(`# Preferences\n${sysPrefs.content}`);
@@ -562,11 +843,21 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
       Object.entries(groups).map(([t, lines]) => `## ${labelMap[t] || t.toUpperCase()}\n${lines.join('\n')}`).join('\n\n'));
   }
 
-  systemSections.push(`# Session\nID: ${sessionId} | Conv: ${conversationId} | Date (Manila): ${date} | Model: ${model} | Intent: ${intent} | Scope: ${scope}${isThinkMode ? ' | Mode: think' : ''}`);
+  // Phase 9: Inject scoped memory (user-approved, cached)
+  if (scopedMemory.length > 0) {
+    const lines = scopedMemory.map(m => `- ${m.content}`).join('\n');
+    systemSections.push(`# Scoped Memory [${validatedScope}] (${scopedMemory.length} items, cached)\n${lines}`);
+  }
+
+  if (prevSummary?.summary) {
+    systemSections.push(`# Previous Session Context [${validatedScope}]\n${prevSummary.summary}`);
+  }
+
+  systemSections.push(`# Session\nID: ${sessionId} | Conv: ${conversationId} | Date (Manila): ${date} | Model: ${validatedModel} | Intent: ${validatedIntent} | Scope: ${validatedScope}${isThinkMode ? ' | Mode: think' : ''}`);
   const systemPrompt = systemSections.join('\n\n');
 
   const recentMessages = recentRaw
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
     .map(({ role, content }) => ({ role, content }));
 
   // Build user content (text or text+image)
@@ -586,17 +877,33 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
 
   const messagesForClaude = [...recentMessages, { role: 'user', content: userContent }];
 
-  // Start streaming request to OpenRouter
-  const upstream = await callClaudeStream(env.OPENROUTER_API_KEY, {
-    model,
-    system: systemPrompt,
-    messages: messagesForClaude,
-    maxTokens: max_tokens || 2048,
-  });
+  // Phase 4.6: OpenRouter fetch with retry + structured error handling
+  const orOpts = { model: validatedModel, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 2048 };
+  let upstream;
+  try {
+    upstream = await callClaudeStream(env.OPENROUTER_API_KEY, orOpts);
+    if (upstream.status === 429) {
+      console.warn('[ge-ai] OpenRouter 429 — retrying after 1s');
+      await new Promise(r => setTimeout(r, 1000));
+      upstream = await callClaudeStream(env.OPENROUTER_API_KEY, orOpts);
+    }
+  } catch (netErr) {
+    console.error('[ge-ai] OpenRouter network error:', netErr.message);
+    return sseErrorResponse('Connection issue — please try again.', sessionId, validatedIntent, validatedModel, validatedScope, 'network_error');
+  }
 
+  if (upstream.status === 429) {
+    console.error('[ge-ai] OpenRouter still 429 after retry');
+    return sseErrorResponse('GE is busy — please try again in a moment.', sessionId, validatedIntent, validatedModel, validatedScope, 'rate_limited');
+  }
+  if (upstream.status === 401 || upstream.status === 403) {
+    console.error(`[ge-ai] OpenRouter auth error ${upstream.status}`);
+    return sseErrorResponse('Provider authentication issue — please contact support.', sessionId, validatedIntent, validatedModel, validatedScope, 'auth_error');
+  }
   if (!upstream.ok) {
-    const errBody = await upstream.text();
-    throw new Error(`OpenRouter API error ${upstream.status}: ${errBody.substring(0, 300)}`);
+    const errBody = await upstream.text().catch(() => '');
+    console.error(`[ge-ai] OpenRouter error ${upstream.status}: ${errBody.substring(0, 200)}`);
+    return sseErrorResponse('GE encountered an error — please try again.', sessionId, validatedIntent, validatedModel, validatedScope, 'provider_error');
   }
 
   // Pipe SSE chunks to frontend via TransformStream
@@ -609,6 +916,8 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
     const reader = upstream.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
+    let responseStatus = 'ok'; // hoisted so log can read it after finally
+
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -631,26 +940,89 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         }
       }
     } finally {
-      // Send done metadata
-      await writer.write(enc.encode(`data: ${JSON.stringify({ type: 'done', session_id: sessionId, conversation_id: conversationId, model, intent, scope, think_mode: isThinkMode, memory_items: relevantMemory.length })}\n\n`));
+      // Phase 4: Validate response — inject fallback if empty
+      if (!fullText || fullText.trim().length === 0) {
+        const fallback = 'Something went wrong — please try again.';
+        await writer.write(enc.encode(`data: ${JSON.stringify({ type: 'text', content: fallback })}\n\n`));
+        fullText = fallback;
+        responseStatus = 'fallback';
+        console.error('[ge-ai] empty response — fallback injected');
+      }
+
+      // Phase 4.5: Schema-enforced done event — all fields always present
+      await writer.write(enc.encode(`data: ${JSON.stringify({
+        type:             'done',
+        message:          fullText,
+        intent:           validatedIntent,
+        model:            validatedModel,
+        scope:            validatedScope,
+        memory_loaded:    relevantMemory.length,
+        session_id:       sessionId,
+        status:           responseStatus,
+        runtime_degraded: firestoreDegraded,
+        // backward-compat
+        conversation_id:  conversationId,
+        think_mode:       isThinkMode,
+        memory_items:     relevantMemory.length,
+      })}\n\n`));
       await writer.close();
     }
 
-    // Persist both turns to Firestore after stream completes
+    // Phase 4.6: Firestore write — log on failure, never block the response
     const now = new Date().toISOString();
     const imageSmall = image && image.length < 100 * 1024;
-    await Promise.all([
-      db.add(`sessions/${sessionId}/messages`, {
-        role: 'user',
-        content: image ? `[📷 image attached] ${cleanMessage}` : cleanMessage,
-        timestamp: now, sessionId, conversationId, model, intent, scope, think_mode: isThinkMode, has_image: !!image,
-        ...(imageSmall ? { image_data: image } : {}),
-      }),
-      db.add(`sessions/${sessionId}/messages`, {
-        role: 'assistant', content: fullText,
-        timestamp: new Date().toISOString(), sessionId, conversationId, model, intent, scope, think_mode: isThinkMode,
-      }),
-    ]);
+    try {
+      await Promise.all([
+        db.add(`sessions/${sessionId}/messages`, {
+          role: 'user',
+          content: image ? `[📷 image attached] ${cleanMessage}` : cleanMessage,
+          createdAt: now, sessionId, conversationId,
+          model: validatedModel, intent: validatedIntent, scope: validatedScope,
+          think_mode: isThinkMode, has_image: !!image,
+          user_id: user.uid,
+          ...(imageSmall ? { image_data: image } : {}),
+        }),
+        db.add(`sessions/${sessionId}/messages`, {
+          role: 'assistant', content: fullText,
+          createdAt: new Date().toISOString(), sessionId, conversationId,
+          model: validatedModel, intent: validatedIntent, scope: validatedScope,
+          think_mode: isThinkMode, user_id: user.uid,
+        }),
+      ]);
+    } catch (writeErr) {
+      console.error('[ge-ai] Firestore write failed (non-blocking):', writeErr.message);
+    }
+
+    // Phase 10: Cross-device continuity — save active session under users/{uid}
+    try {
+      await db.set('users', user.uid, {
+        session_id: sessionId,
+        scope: validatedScope,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('[ge-ai] user session save failed:', e.message);
+    }
+
+    // Phase 6: Runtime log — fire and forget, never blocks response
+    try {
+      await db.add('runtime_logs', {
+        request_id:       crypto.randomUUID(),
+        session_id:       sessionId,
+        user_message:     cleanMessage.substring(0, 200),
+        detected_intent:  validatedIntent,
+        detected_mode:    isThinkMode ? 'think' : 'execute',
+        selected_model:   validatedModel,
+        scope:            validatedScope,
+        memory_loaded:    relevantMemory.length,
+        validation_result: responseStatus,
+        fallback_used:    responseStatus !== 'ok',
+        runtime_degraded: firestoreDegraded,
+        created_at:       new Date().toISOString(),
+      });
+    } catch (logErr) {
+      console.error('[ge-ai] Runtime log write failed:', logErr.message);
+    }
   };
 
   ctx.waitUntil(processStream());
@@ -667,8 +1039,29 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   });
 }
 
+// GET /recall — returns all items from `memory` collection (ordered by createdAt desc)
+async function handleRecallMemory(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  const url = new URL(request.url);
+  const limitParam = parseInt(url.searchParams.get('limit')) || 50;
+  const limit = Math.min(limitParam, 200);
+
+  const db = await initFirestore(env);
+  const items = await db.query('', 'memory', {
+    orderBy: { field: 'createdAt', direction: 'DESCENDING' },
+    limit,
+  });
+
+  return jsonResponse({ count: items.length, items });
+}
+
 // POST /recall
 async function handleRecall(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
   let body = {};
   try {
     body = await request.json();
@@ -678,12 +1071,14 @@ async function handleRecall(request, env) {
   const date = getManilaDateString();
   const sessionId = body.session_id || buildSessionId(date);
   const limit = Math.min(parseInt(body.limit) || 50, 200);
+  const last = body.last === true;
 
   const sessionParent = `sessions/${sessionId}`;
-  const messages = await db.query(sessionParent, 'messages', {
-    orderBy: { field: 'timestamp', direction: 'ASCENDING' },
+  const raw = await db.query(sessionParent, 'messages', {
+    orderBy: { field: 'createdAt', direction: last ? 'DESCENDING' : 'ASCENDING' },
     limit,
   });
+  const messages = last ? [...raw].reverse() : raw;
 
   return jsonResponse({ session_id: sessionId, count: messages.length, messages });
 }
@@ -772,6 +1167,9 @@ ${content}`;
 
 // POST /import
 async function handleImport(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();
@@ -830,8 +1228,11 @@ async function handleImport(request, env) {
   return jsonResponse({ imported: allItems.length, chunks_processed: totalChunks, batch_id: batchId, items: allItems });
 }
 
-// POST /save
+// POST /save  — Phase 5: writes to memory_updates as a pending proposal
 async function handleSave(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
   let body;
   try {
     body = await request.json();
@@ -839,39 +1240,26 @@ async function handleSave(request, env) {
     return errorResponse('Invalid JSON body');
   }
 
+  const { content, scope, tags, pinned, session_id } = body;
+  if (!content || typeof content !== 'string')
+    return errorResponse('content (string) is required');
+
   const db = await initFirestore(env);
   const now = new Date().toISOString();
 
-  // New format: flat { content, scope, tags, pinned, session_id }
-  if (body.content !== undefined) {
-    const { content, scope, tags, pinned, session_id } = body;
-    if (!content || typeof content !== 'string')
-      return errorResponse('content (string) is required');
-    const newId = await db.add('memory', {
-      content,
-      scope: scope || 'global',
-      tags: Array.isArray(tags) ? tags : [],
-      pinned: pinned === true,
-      session_id: session_id || null,
-      createdAt: now,
-    });
-    return jsonResponse({ id: newId, collection: 'memory', action: 'created' });
-  }
+  const newId = await db.add('memory_updates', {
+    content,
+    scope:       scope || 'global',
+    tags:        Array.isArray(tags) ? tags : [],
+    pinned:      pinned === true,
+    session_id:  session_id || null,
+    status:      'pending',
+    confidence:  0.8,
+    proposed_at: now,
+    user_id:     user.uid,
+  });
 
-  // Legacy format: { collection, id, data }
-  const { collection, id, data } = body;
-  if (!collection || typeof collection !== 'string')
-    return errorResponse('collection (string) is required');
-  if (!data || typeof data !== 'object')
-    return errorResponse('data (object) is required');
-  const payload = { ...data, savedAt: now };
-  if (id) {
-    await db.set(collection, String(id), payload);
-    return jsonResponse({ id: String(id), collection, action: 'saved' });
-  } else {
-    const newId = await db.add(collection, payload);
-    return jsonResponse({ id: newId, collection, action: 'created' });
-  }
+  return jsonResponse({ id: newId, collection: 'memory_updates', action: 'proposed' });
 }
 
 // GET /admin/memory
@@ -1046,6 +1434,129 @@ async function handleAdminSeed(request, env) {
   return jsonResponse({ seeded: results.length, results, timestamp: now });
 }
 
+// POST /admin/seed-memory
+async function handleAdminSeedMemory(request, env) {
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+
+  const seeds = [
+    // MEATSOURCE
+    { content: 'Pork margin is +20% rounded up to nearest whole number. Minimum ₱20/kg non-negotiable.', scope: 'meatsource' },
+    { content: 'Chicken margin is +15% rounded up. Minimum ₱20/kg non-negotiable.', scope: 'meatsource' },
+    { content: 'Beef margin is +25% rounded up. Minimum ₱20/kg non-negotiable.', scope: 'meatsource' },
+    { content: 'Fish and Fries sold at cost — zero markup.', scope: 'meatsource' },
+    { content: 'Pork Belly/Liempo sold per piece, 7–10kg per piece.', scope: 'meatsource' },
+    { content: '46 products across Pork, Chicken, Beef, Fish and Fries categories.', scope: 'meatsource' },
+    { content: 'Facebook page: fb.com/meatsourceph. Mon/Wed/Fri content schedule.', scope: 'meatsource' },
+    { content: 'GCash is primary payment. Payment-first policy always.', scope: 'meatsource' },
+    // GABAY ESSENTIALS
+    { content: 'Niche cluster: Tech and Gadgets (primary), Health and Wellness (primary), Beauty and Skincare (primary), Car/Motor Accessories (bonus), Office and Study (bonus).', scope: 'gabay' },
+    { content: 'One-niche-first approach confirmed. Start with Tech and Gadgets.', scope: 'gabay' },
+    { content: 'Platforms: TikTok, Facebook, Instagram, Shopee affiliate, Lazada affiliate, WordPress.', scope: 'gabay' },
+    { content: 'TikTok Phase 1 = bio link only. Phase 2 = TikTok Shop after 1,000 followers organically. Do NOT buy account.', scope: 'gabay' },
+    { content: 'All content 100% AI-generated. No manual creative work from Gerald.', scope: 'gabay' },
+    { content: 'Monthly budget locked at ₱7,910–₱8,710.', scope: 'gabay' },
+    { content: 'Brand name still pending — this is the only blocker for Phase 1 launch.', scope: 'gabay' },
+    { content: 'Stack: Claude API, ChatGPT Plus, Gemini, Creatify, Ideogram API, Make.com, Firebase, Cloudflare Pages.', scope: 'gabay' },
+    // EXIS OS
+    { content: 'Exis OS tagline: Execute Your Existence. A living system — starts empty, grows through input, strengthens through repetition, validates through execution, reveals patterns over time.', scope: 'exis-os' },
+    { content: 'Core law: Nothing is dismissed. Everything is captured. What you write becomes memory. What you execute becomes pattern. Patterns reveal priorities. Existence evolves through what you execute.', scope: 'exis-os' },
+    { content: 'System flow: Write → Route → Continue/Memory/Done/Evidence/Keep → Signal Strength → Pattern → Insight.', scope: 'exis-os' },
+    { content: 'Stack: Cloudflare Pages PWA, Firebase Auth + Firestore + Storage, Cloudflare Worker, OpenAI API primary reasoning, Claude API memory recall, Browser Speech API voice layer.', scope: 'exis-os' },
+    { content: 'Capture is unlimited. Processing is limited. Energy = visible control. Quota = real enforcement. 1:1 mapping per successful processing action.', scope: 'exis-os' },
+    { content: 'No manual tagging — only actions. Domains are light context only, do not define priority or importance.', scope: 'exis-os' },
+    { content: 'Write is frictionless — supports text, voice (no cost), attachments (no cost). No structure forced, no validation, no blocking.', scope: 'exis-os' },
+    { content: 'Signal system: Noise → Capture → Reinforced → Intent → Execution → Confirmed → Proven. Evidence is strongest signal layer — Proof beats execution.', scope: 'exis-os' },
+    // GLOBAL
+    { content: 'Gerald Reyes is an entrepreneur in Quezon City, Philippines running MEATSOURCE, Gabay Essentials, and Exis OS simultaneously.', scope: 'global' },
+    { content: 'Emergency fund is untouchable — never include in any plan.', scope: 'global' },
+    { content: 'GCash is primary payment across all businesses. Currency is always Philippine Pesos (₱).', scope: 'global' },
+    { content: 'Gerald builds and maintains his own web apps using Firebase and Cloudflare Pages.', scope: 'global' },
+    { content: 'All decisions already made are final — do not re-litigate them.', scope: 'global' },
+    { content: 'Conservative projections always. Brutal honesty over comfortable agreement.', scope: 'global' },
+  ];
+
+  const results = [];
+  for (const s of seeds) {
+    const id = await db.add('memory', {
+      content: s.content,
+      scope: s.scope,
+      tags: [],
+      pinned: true,
+      session_id: 'seed',
+      createdAt: now,
+    });
+    results.push({ id, scope: s.scope });
+  }
+
+  return jsonResponse({ seeded: results.length, results, timestamp: now });
+}
+
+// GET /review — returns all pending memory_updates proposals
+async function handleReview(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit')) || 100, 200);
+
+  const db = await initFirestore(env);
+  const items = await db.query('', 'memory_updates', {
+    filters: [{
+      fieldFilter: {
+        field: { fieldPath: 'status' },
+        op: 'EQUAL',
+        value: { stringValue: 'pending' },
+      },
+    }],
+    orderBy: { field: 'proposed_at', direction: 'DESCENDING' },
+    limit,
+  });
+
+  return jsonResponse({ count: items.length, items });
+}
+
+// POST /admin/approve-memory — moves an approved proposal into the stable memory collection
+async function handleApproveMemory(request, env) {
+  const { authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+
+  const { id } = body;
+  if (!id || typeof id !== 'string') return errorResponse('id (string) is required');
+
+  const db = await initFirestore(env);
+
+  const proposal = await db.get('memory_updates', id);
+  if (!proposal) return errorResponse('Proposal not found', 404);
+  if (proposal.status !== 'pending') return errorResponse(`Proposal is already ${proposal.status}`, 409);
+
+  const now = new Date().toISOString();
+
+  // Write to stable memory
+  const memId = await db.add('memory', {
+    content:     proposal.content,
+    scope:       proposal.scope   || 'global',
+    tags:        proposal.tags    || [],
+    pinned:      proposal.pinned  || false,
+    session_id:  proposal.session_id || null,
+    confidence:  proposal.confidence || 0.8,
+    source_id:   id,
+    createdAt:   now,
+    user_id:     proposal.user_id || null,
+  });
+
+  // Mark proposal as approved
+  await db.set('memory_updates', id, { ...proposal, status: 'approved', approved_at: now, memory_id: memId });
+
+  // Phase 9: Invalidate scope cache so next request loads fresh memory
+  invalidateScopeCache(proposal.scope || 'global');
+
+  return jsonResponse({ id: memId, source_id: id, collection: 'memory', action: 'approved' });
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
@@ -1058,23 +1569,24 @@ export default {
     const method = request.method;
 
     try {
-      if (pathname === '/health' && method === 'GET') return await handleHealth();
-      if (pathname === '/chat' && method === 'POST') return await handleChat(request, env, ctx);
+      if (pathname === '/health'            && method === 'GET')  return await handleHealth();
+      if (pathname === '/active-session'    && method === 'GET')  return await handleActiveSession(request, env);
+      if (pathname === '/summarize-session' && method === 'POST') return await handleSummarizeSession(request, env);
+      if (pathname === '/chat'              && method === 'POST') return await handleChat(request, env, ctx);
+      if (pathname === '/recall' && method === 'GET')  return await handleRecallMemory(request, env);
       if (pathname === '/recall' && method === 'POST') return await handleRecall(request, env);
       if (pathname === '/import' && method === 'POST') return await handleImport(request, env);
-      if (pathname === '/save' && method === 'POST') return await handleSave(request, env);
+      if (pathname === '/save'   && method === 'POST') return await handleSave(request, env);
+      if (pathname === '/review' && method === 'GET')  return await handleReview(request, env);
+      if (pathname === '/admin/approve-memory' && method === 'POST') return await handleApproveMemory(request, env);
       if (pathname === '/admin/seed' && method === 'POST') return await handleAdminSeed(request, env);
+      if (pathname === '/admin/seed-memory' && method === 'POST') return await handleAdminSeedMemory(request, env);
       if (pathname === '/admin/memory' && method === 'GET') return await handleAdminMemory(request, env);
 
       return errorResponse('Not found', 404);
     } catch (err) {
       console.error('[ge-ai] Unhandled error:', err?.message ?? err);
-      return errorResponse(
-        err?.message?.startsWith('OpenRouter API error') || err?.message?.startsWith('Google token error')
-          ? err.message
-          : 'Internal server error',
-        500
-      );
+      return errorResponse('Internal server error', 500);
     }
   },
 };

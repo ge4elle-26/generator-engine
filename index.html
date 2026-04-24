@@ -1,3 +1,4 @@
+<!-- v=20260418-1800 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,290 +13,357 @@
 <meta name="apple-mobile-web-app-title" content="GE"/>
 <style>
 /* ── Tokens ─────────────────────────────────────── */
-:root {
-  --bg:       #000000;
-  --card:     #1C1C1E;
-  --card2:    #2C2C2E;
-  --text:     #FFFFFF;
-  --text2:    #8E8E93;
-  --accent:   #00FF87;
-  --div:      rgba(255,255,255,0.10);
-  --r:        16px;
-  --user-bg:  #1C1C1E;
-  --send-bg:  #FFFFFF;
-  --send-fg:  #000000;
+:root{
+  --bg:#000000;--card:#1C1C1E;--card2:#1C1C1E;
+  --text:#FFFFFF;--text2:#8E8E93;--accent:#00FF87;
+  --div:rgba(255,255,255,0.10);--r:16px;
+  --user-bg:#1C1C1E;--send-bg:#FFFFFF;--send-fg:#000000;
 }
-body.light {
-  --bg:       #F2F2F7;
-  --card:     #FFFFFF;
-  --card2:    #E5E5EA;
-  --text:     #000000;
-  --text2:    #6C6C70;
-  --accent:   #00C46A;
-  --div:      rgba(0,0,0,0.08);
-  --user-bg:  #E5E5EA;
-  --send-bg:  #000000;
-  --send-fg:  #FFFFFF;
+body.light{
+  --bg:#F2F2F7;--card:#FFFFFF;--card2:#E5E5EA;
+  --text:#000000;--text2:#6C6C70;--accent:#00C46A;
+  --div:rgba(0,0,0,0.08);--user-bg:#E5E5EA;
+  --send-bg:#000000;--send-fg:#FFFFFF;
 }
 
 /* ── Reset ──────────────────────────────────────── */
-*,*::before,*::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0; }
-html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,sans-serif;
-  font-size:16px; -webkit-font-smoothing:antialiased; }
+  font-size:16px;-webkit-font-smoothing:antialiased}
 
 /* ── Shell ──────────────────────────────────────── */
-.app {
-  position:fixed; inset:0;
-  display:flex; flex-direction:column;
-  max-width:640px; margin:0 auto;
-}
+.app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:640px;margin:0 auto}
 
 /* ── Header ─────────────────────────────────────── */
-.hdr {
-  flex-shrink:0;
-  display:flex; align-items:center; justify-content:space-between;
-  padding: calc(env(safe-area-inset-top,0px) + 14px) 20px 12px;
-  background:var(--bg);
+.hdr{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 12px;
+  background:#000000;
 }
-.hdr-title { font-size:17px; font-weight:700; letter-spacing:-0.4px; display:flex; align-items:center; gap:7px; }
-.hdr-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); flex-shrink:0; }
-.theme-btn {
-  width:36px; height:36px; border-radius:50%; border:none;
-  background:var(--card); color:var(--text2); cursor:pointer;
-  display:grid; place-items:center;
+.hdr-title{font-size:17px;font-weight:700;letter-spacing:-.4px;display:flex;align-items:center;gap:7px}
+.hdr-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#3A3A3C;flex-shrink:0;transition:background .3s}
+.status-label{font-size:11px;font-weight:600;color:var(--text2);transition:color .3s}
+.theme-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);color:var(--text2);cursor:pointer;display:grid;place-items:center}
+.user-email{font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Scope selector ──────────────────────────────── */
+.scope-selector{
+  position:relative;flex-shrink:0;
+  padding:6px 16px 8px;border-bottom:.5px solid var(--div);
 }
+.scope-trigger{
+  display:inline-flex;align-items:center;gap:7px;
+  background:#1C1C1E;border:none;border-radius:16px;
+  padding:7px 14px;font:inherit;font-size:14px;font-weight:600;
+  color:#FFF;cursor:pointer;
+}
+.scope-trigger-dot{width:7px;height:7px;border-radius:50%;background:#00FF87;flex-shrink:0}
+.scope-chevron{font-size:11px;color:#8E8E93;line-height:1}
+.scope-dropdown{
+  position:absolute;top:calc(100% + 2px);left:16px;
+  background:#1C1C1E;border-radius:14px;
+  box-shadow:0 8px 32px rgba(0,0,0,.65);
+  z-index:100;min-width:190px;overflow:hidden;
+  padding:6px;display:flex;flex-direction:column;gap:2px;
+}
+.scope-dropdown.hidden{display:none}
+.scope-option{
+  background:none;border:none;text-align:left;
+  font:inherit;font-size:14px;font-weight:600;color:#FFF;
+  padding:10px 14px;border-radius:10px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.scope-option:hover,.scope-option:active{background:rgba(255,255,255,0.08)}
+.scope-option-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* ── Screens ────────────────────────────────────── */
-.screen { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-.screen.hidden { display:none; }
+.screen{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.screen.hidden{display:none}
 
 /* ── Thread ─────────────────────────────────────── */
-.thread {
-  flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
-  padding:8px 16px 12px;
-  display:flex; flex-direction:column; gap:2px;
-  -webkit-overflow-scrolling:touch;
-  scroll-behavior:smooth;
+.thread{
+  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+  padding:8px 16px 12px;display:flex;flex-direction:column;gap:2px;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
 }
-/* subtle scrollbar */
-.thread::-webkit-scrollbar { width:3px; }
-.thread::-webkit-scrollbar-track { background:transparent; }
-.thread::-webkit-scrollbar-thumb { background:var(--card2); border-radius:99px; }
+.thread::-webkit-scrollbar{width:3px}
+.thread::-webkit-scrollbar-track{background:transparent}
+.thread::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
 
 /* ── Messages ───────────────────────────────────── */
-.msg { display:flex; flex-direction:column; margin:4px 0; }
-.msg.user { align-items:flex-end; }
-.msg.assistant { align-items:flex-start; }
-
-.bubble {
-  max-width:80%; padding:11px 14px; border-radius:var(--r);
-  font-size:15px; line-height:1.5; white-space:pre-wrap; word-break:break-word;
-}
-.bubble.user-bbl { background:var(--user-bg); color:var(--text); border-bottom-right-radius:4px; }
-.bubble.ai-bbl {
-  background:transparent; color:var(--text); max-width:100%;
-  padding:2px 0;
-}
-
-/* blinking cursor while streaming */
-.ai-bbl.streaming::after {
-  content:'▋'; margin-left:2px; opacity:1;
-  animation:blink .7s step-end infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.msg{display:flex;flex-direction:column;margin:4px 0;animation:fadein .15s ease-out}
+.msg.user{align-items:flex-end}
+.msg.assistant{align-items:flex-start}
+.bubble{max-width:80%;padding:11px 14px;border-radius:var(--r);font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.bubble.user-bbl{background:var(--user-bg);color:var(--text);border-bottom-right-radius:4px}
+.bubble.ai-bbl{background:transparent;color:var(--text);max-width:100%;padding:2px 0}
+.ai-bbl.streaming::after{content:'▋';margin-left:2px;animation:blink .7s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 
 /* ── Think mode ─────────────────────────────────── */
-.think-badge {
-  display:inline-flex; align-items:center; gap:5px;
-  font-size:12px; font-weight:600; color:#FF9F0A;
-  margin-bottom:5px;
-}
-.think-dot {
-  width:6px; height:6px; border-radius:50%; background:#FF9F0A;
-  animation:pulse 1.2s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+.think-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#FF9F0A;margin-bottom:5px}
+.think-dot{width:6px;height:6px;border-radius:50%;background:#FF9F0A;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
-/* ── Msg meta (scope + model) ───────────────────── */
-.msg-meta {
-  display:flex; gap:8px; align-items:center; margin-top:5px;
-  flex-wrap:wrap;
-}
-.scope-pill-msg {
-  font-size:11px; font-weight:600; color:var(--accent);
-  background:transparent; padding:0;
-  text-transform:uppercase; letter-spacing:.04em;
-}
-.model-label {
-  font-size:11px; color:var(--text2);
-}
+/* ── Msg meta ───────────────────────────────────── */
+.msg-meta{display:flex;gap:8px;align-items:center;margin-top:5px;flex-wrap:wrap}
+.scope-pill-msg{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+.model-label{font-size:11px;color:var(--text2)}
 
 /* ── Save chip ──────────────────────────────────── */
-.save-row { display:flex; gap:8px; margin-top:8px; }
-.save-chip {
-  border:none; border-radius:999px; padding:7px 14px;
-  font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;
-}
-.save-chip.ok  { background:var(--accent); color:#000; }
-.save-chip.no  { background:var(--card2); color:var(--text2); }
-.save-chip:active { opacity:.7; }
+.save-row{display:flex;gap:8px;margin-top:8px}
+.save-chip{border:none;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.save-chip.ok{background:var(--accent);color:#000}
+.save-chip.no{background:var(--card2);color:var(--text2)}
+.save-chip:active{opacity:.7}
 
 /* ── Typing dots ────────────────────────────────── */
-.typing-dots { display:flex; gap:4px; padding:6px 0; }
-.typing-dots span {
-  width:6px; height:6px; border-radius:50%; background:var(--text2);
-  animation:tdot 1.1s ease-in-out infinite;
-}
+.typing-dots{display:flex;gap:4px;padding:6px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--text2);animation:tdot 1.1s ease-in-out infinite}
 .typing-dots span:nth-child(2){animation-delay:.18s}
 .typing-dots span:nth-child(3){animation-delay:.36s}
-@keyframes tdot { 0%,80%,100%{transform:scale(.55);opacity:.35} 40%{transform:scale(1);opacity:1} }
-
-/* fade in */
-.msg { animation:fadein .15s ease-out; }
-@keyframes fadein { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+@keyframes tdot{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
 
 /* ── Input ──────────────────────────────────────── */
-.input-area {
-  flex-shrink:0; background:var(--bg);
-  padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));
-  border-top:.5px solid var(--div);
-}
-.img-bar {
-  display:none; align-items:center; gap:10px; margin-bottom:8px;
-}
-.img-bar.show { display:flex; }
-.img-thumb { width:38px; height:38px; border-radius:8px; object-fit:cover; flex-shrink:0; }
-.img-fname { flex:1; font-size:13px; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.img-rm { background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer; padding:0 2px; line-height:1; }
-.input-row {
-  display:flex; align-items:flex-end; gap:8px;
-  background:var(--card); border-radius:var(--r);
-  padding:10px 8px 10px 14px;
-}
-textarea.composer {
-  flex:1; background:transparent; border:none; outline:none;
-  color:var(--text); font:inherit; font-size:15px;
-  line-height:1.4; resize:none; min-height:22px; max-height:96px;
-}
-textarea.composer::placeholder { color:var(--text2); }
-.attach-btn {
-  flex-shrink:0; background:none; border:none;
-  color:var(--text2); cursor:pointer; padding:4px; display:grid; place-items:center;
-}
-.send-btn {
-  flex-shrink:0; width:32px; height:32px; border-radius:50%; border:none;
-  background:var(--send-bg); color:var(--send-fg); cursor:pointer;
-  display:grid; place-items:center;
-}
-.send-btn:disabled { opacity:.35; cursor:default; }
+.input-area{flex-shrink:0;background:#000000;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));border-top:.5px solid var(--div)}
+.img-bar{display:none;align-items:center;gap:10px;margin-bottom:8px}
+.img-bar.show{display:flex}
+.img-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.img-fname{flex:1;font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.img-rm{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
+.input-row{display:flex;align-items:flex-end;gap:8px;background:var(--card);border-radius:var(--r);padding:10px 8px 10px 14px}
+textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px}
+textarea.composer::placeholder{color:var(--text2)}
+.attach-btn{flex-shrink:0;background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:grid;place-items:center}
+.send-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;background:var(--send-bg);color:var(--send-fg);cursor:pointer;display:grid;place-items:center}
+.send-btn:disabled{opacity:.35;cursor:default}
+.attach-btn.context-on{color:var(--accent)}
 
-/* ── Bottom nav ─────────────────────────────────── */
-.nav {
-  flex-shrink:0; background:var(--bg);
-  border-top:.5px solid var(--div);
-  display:flex;
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-.nav-item {
-  flex:1; background:none; border:none;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:3px; padding:10px 4px 10px;
-  color:var(--text2); cursor:pointer; font-family:inherit;
-  font-size:11px; font-weight:600;
-}
-.nav-item.active { color:var(--accent); }
-.nav-lbl { display:none; }
-.nav-item.active .nav-lbl { display:block; }
+/* ── Import panel ───────────────────────────────── */
+.import-panel{display:none;flex-direction:column;gap:8px;background:var(--card);border-radius:var(--r);padding:12px;margin-bottom:8px}
+.import-panel.show{display:flex}
+.import-hdr{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.import-ta{background:var(--card2);border:none;outline:none;color:var(--text);font:inherit;font-size:14px;line-height:1.45;border-radius:10px;padding:10px 12px;resize:none;min-height:80px;max-height:160px}
+.import-ta::placeholder{color:var(--text2)}
+.import-actions{display:flex;gap:8px;justify-content:flex-end}
+.import-act-btn{border:none;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.import-act-btn.ok{background:var(--accent);color:#000}
+.import-act-btn.cancel{background:var(--card2);color:var(--text2)}
+
+/* ── Bottom nav — 5 tabs ────────────────────────── */
+.nav{flex-shrink:0;background:#000000;border-top:.5px solid var(--div);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;min-width:0;position:relative}
+.nav-item.active{color:var(--accent)}
+.nav-lbl{display:none;font-size:10px}
+.nav-item.active .nav-lbl{display:block}
+.nav-icon-wrap{position:relative;display:inline-flex}
+.nav-badge{position:absolute;top:-4px;right:-7px;min-width:16px;height:16px;border-radius:999px;background:#FF453A;color:#FFF;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1;pointer-events:none}
+.nav-badge.show{display:flex}
 
 /* ── Memory screen ──────────────────────────────── */
-.mem-hdr {
-  flex-shrink:0; padding:16px 20px 12px;
-  font-size:13px; font-weight:600; color:var(--text2);
-  text-transform:uppercase; letter-spacing:.06em;
-  border-bottom:.5px solid var(--div);
-}
-.mem-list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-.mem-item { padding:14px 20px; border-bottom:.5px solid var(--div); }
-.mem-item-role { font-size:12px; font-weight:600; color:var(--text2); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
-.mem-item-text { font-size:15px; line-height:1.45; }
-.mem-item-time { font-size:12px; color:var(--text2); margin-top:4px; }
-.mem-empty { flex:1; display:flex; align-items:center; justify-content:center; color:var(--text2); font-size:15px; }
+.mem-hdr{flex-shrink:0;padding:16px 20px 12px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--div)}
+.mem-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mem-item{padding:14px 20px;border-bottom:.5px solid var(--div)}
+.mem-item-text{font-size:15px;line-height:1.45}
+.mem-item-foot{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.mem-scope-pill{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+.mem-item-time{font-size:12px;color:var(--text2)}
+.mem-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:15px}
+.mem-section-hdr{padding:10px 20px 6px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;background:var(--card2)}
+.mem-approve-btn{margin-left:auto;flex-shrink:0;border:none;border-radius:8px;padding:5px 12px;font:inherit;font-size:12px;font-weight:700;background:#00FF87;color:#000;cursor:pointer}
+.mem-approve-btn:disabled{opacity:.45;cursor:default}
+.mem-pending-badge{font-size:11px;font-weight:600;color:#FF9F0A;letter-spacing:.03em}
 
-/* ── Settings screen ────────────────────────────── */
-.settings-scroll { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; }
-.s-group { background:var(--card); border-radius:var(--r); overflow:hidden; }
-.s-label {
-  padding:11px 16px 6px;
-  font-size:12px; font-weight:600; color:var(--text2);
-  text-transform:uppercase; letter-spacing:.06em;
+/* ── Businesses screen ──────────────────────────── */
+#screen-businesses{position:relative}
+.biz-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 0 80px}
+.biz-card{
+  display:flex;align-items:center;gap:14px;
+  background:var(--card);border-radius:var(--r);
+  margin:0 16px 10px;padding:16px;
+  border-left:3px solid transparent;cursor:pointer;
+  -webkit-user-select:none;user-select:none;
+  transition:opacity .15s;
 }
-.s-row {
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:14px 16px; border-bottom:.5px solid var(--div); font-size:15px;
+.biz-card:active{opacity:.65}
+.biz-card-main{flex:1;min-width:0}
+.biz-card-name{font-size:16px;font-weight:700;margin-bottom:3px}
+.biz-card-desc{font-size:13px;color:var(--text2);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.biz-scope-pill{display:inline-block;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.biz-chat-btn{flex-shrink:0;background:var(--card2);border:none;border-radius:10px;padding:8px 14px;font:inherit;font-size:14px;font-weight:600;color:var(--text);cursor:pointer}
+.biz-fab{
+  position:absolute;bottom:16px;right:16px;
+  width:52px;height:52px;border-radius:50%;border:none;
+  background:#00FF87;color:#000;font-size:30px;line-height:1;
+  cursor:pointer;display:grid;place-items:center;
+  box-shadow:0 4px 20px rgba(0,255,135,.4);z-index:10;
 }
-.s-row:last-child { border-bottom:none; }
-.s-val { color:var(--text2); font-size:14px; }
 
-/* toggle */
-.tog { position:relative; width:51px; height:31px; flex-shrink:0; cursor:pointer; }
-.tog input { opacity:0; width:0; height:0; }
-.tog-track {
-  position:absolute; inset:0; border-radius:999px;
-  background:var(--text2); transition:background .2s;
+/* ── Business modal (bottom sheet) ─────────────── */
+.biz-modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);display:flex;align-items:flex-end}
+.biz-modal-overlay.hidden{display:none}
+.biz-modal-card{
+  width:100%;max-width:640px;margin:0 auto;
+  background:#1C1C1E;border-radius:20px 20px 0 0;
+  padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;gap:12px;
 }
-.tog input:checked ~ .tog-track { background:var(--accent); }
-.tog-thumb {
-  position:absolute; top:2px; left:2px; width:27px; height:27px;
-  border-radius:50%; background:#FFF;
-  transition:transform .2s; pointer-events:none;
-  box-shadow:0 1px 4px rgba(0,0,0,.35);
-}
-.tog input:checked ~ .tog-thumb { transform:translateX(20px); }
+.biz-modal-title{font-size:18px;font-weight:700;color:#FFF}
+.biz-field{background:#000000;border:1px solid rgba(255,255,255,0.1);outline:none;color:#FFF;font:inherit;font-size:15px;border-radius:12px;padding:13px 16px;width:100%}
+.biz-field::placeholder{color:#8E8E93}
+.color-swatch-row{display:flex;gap:10px;padding:2px 0}
+.color-swatch{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .15s}
+.color-swatch.active{border-color:#FFF}
+.biz-modal-actions{display:flex;gap:10px}
+.biz-modal-btn{flex:1;border:none;border-radius:12px;padding:13px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.biz-modal-btn.primary{background:#00FF87;color:#000}
+.biz-modal-btn.secondary{background:#1C1C1E;color:#8E8E93}
+.biz-modal-btn:disabled{opacity:.45;cursor:default}
+.biz-delete-btn{background:none;border:none;color:#FF453A;font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:center;padding:4px}
 
-/* scope grid */
-.scope-grid { display:flex; flex-wrap:wrap; gap:8px; padding:8px 16px 14px; }
-.s-scope {
-  padding:8px 14px; border-radius:999px; font-size:14px; font-weight:600;
-  background:var(--card2); color:var(--text2); border:none; cursor:pointer; font-family:inherit;
-  transition:background .15s, color .15s;
-}
-.s-scope.on { background:var(--accent); color:#000; }
-.s-scope-add { color:var(--accent); font-size:18px; padding:6px 12px; }
+/* ── State screen ───────────────────────────────── */
+.state-scroll{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.s-group{background:var(--card);border-radius:var(--r);overflow:hidden}
+.s-label{padding:11px 16px 6px;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.s-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:.5px solid var(--div);font-size:15px}
+.s-row:last-child{border-bottom:none}
+.s-val{color:var(--text2);font-size:14px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.s-status-dot{width:8px;height:8px;border-radius:50%;background:#3A3A3C;flex-shrink:0;transition:background .3s}
+.tog{position:relative;width:51px;height:31px;flex-shrink:0;cursor:pointer}
+.tog input{opacity:0;width:0;height:0}
+.tog-track{position:absolute;inset:0;border-radius:999px;background:var(--text2);transition:background .2s}
+.tog input:checked~.tog-track{background:var(--accent)}
+.tog-thumb{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#FFF;transition:transform .2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.tog input:checked~.tog-thumb{transform:translateX(20px)}
+.scope-grid{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px 14px}
+.s-scope{padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;background:var(--card2);color:var(--text2);border:none;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
+.s-scope.on{background:var(--accent);color:#000}
+.s-scope-add{color:var(--accent);font-size:18px;padding:6px 12px}
+.s-logout-btn{background:var(--card2);color:#FF453A;border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 
-/* Import button active state */
-.attach-btn.importing { color:var(--accent); }
+/* ── Review screen ──────────────────────────────── */
+.review-scroll{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.review-card{background:var(--card);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.review-card-text{font-size:15px;line-height:1.45;color:var(--text)}
+.review-card-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.review-scope-pill{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+.review-time{font-size:12px;color:var(--text2)}
+.review-approve-btn{margin-left:auto;flex-shrink:0;border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:13px;font-weight:700;background:#00FF87;color:#000;cursor:pointer}
+.review-approve-btn:disabled{opacity:.45;cursor:default}
+.review-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text2);font-size:15px}
+.review-empty-icon{font-size:44px;opacity:.25}
 
 /* ── Toast ──────────────────────────────────────── */
-.toast {
-  position:fixed; bottom:88px; left:50%;
-  transform:translateX(-50%) translateY(8px);
-  background:var(--card2); color:var(--text);
-  padding:10px 20px; border-radius:999px;
-  font-size:14px; font-weight:600;
-  opacity:0; pointer-events:none; transition:.22s; z-index:99;
-  white-space:nowrap;
-}
-.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--card2);color:var(--text);padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.22s;z-index:99;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Login screen ───────────────────────────────── */
+#login-screen{position:fixed;inset:0;z-index:200;background:#000000;display:flex;align-items:center;justify-content:center;padding:24px}
+#login-screen.hidden{display:none}
+.login-card{width:100%;max-width:340px;background:#1C1C1E;border-radius:20px;padding:32px 24px;display:flex;flex-direction:column;gap:14px}
+.login-logo{font-size:26px;font-weight:800;text-align:center;letter-spacing:-.5px;color:#FFF;display:flex;align-items:center;justify-content:center;gap:8px}
+.login-dot{width:8px;height:8px;border-radius:50%;background:#00FF87;flex-shrink:0}
+.login-sub{font-size:14px;color:#8E8E93;text-align:center;margin-top:-6px}
+.login-field{background:#000000;border:1px solid rgba(255,255,255,0.1);outline:none;color:#FFF;font:inherit;font-size:16px;border-radius:12px;padding:14px 16px;width:100%}
+.login-field::placeholder{color:#8E8E93}
+.login-err{font-size:13px;color:#FF453A;text-align:center;min-height:18px}
+.login-ok{font-size:13px;color:#00FF87;text-align:center;min-height:18px}
+.login-btn{border:none;border-radius:12px;padding:14px;font:inherit;font-size:16px;font-weight:700;cursor:pointer;width:100%}
+.login-btn.primary{background:#00FF87;color:#000}
+.login-btn.secondary{background:#1C1C1E;color:#8E8E93;font-weight:600}
+.login-btn:disabled{opacity:.45;cursor:default}
+.login-forgot{background:none;border:none;color:#8E8E93;font:inherit;font-size:13px;cursor:pointer;text-align:center;padding:2px;text-decoration:underline;text-underline-offset:3px}
+.login-forgot:hover{color:#FFF}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey:     "AIzaSyCpVW2WjVWosf-HliOBTGs66EhDo7KHuUk",
+  authDomain: "generator-engine-ge-brain-mem.firebaseapp.com",
+  projectId:  "generator-engine-ge-brain-mem"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+</script>
 </head>
 <body>
+
+<!-- Login screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">GE <span class="login-dot"></span></div>
+    <div class="login-sub">Generator Engine</div>
+    <input class="login-field" id="loginEmail" type="email" placeholder="Email" autocomplete="email" autocapitalize="none"/>
+    <input class="login-field" id="loginPass" type="password" placeholder="Password" autocomplete="current-password"/>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-ok"  id="loginOk"></div>
+    <button class="login-btn primary"   id="loginSignIn">Sign In</button>
+    <button class="login-btn secondary" id="loginCreate">Create Account</button>
+    <button class="login-forgot"        id="loginForgot">Forgot password?</button>
+  </div>
+</div>
+
+<!-- Business add / edit modal -->
+<div class="biz-modal-overlay hidden" id="bizModal">
+  <div class="biz-modal-card">
+    <div class="biz-modal-title" id="bizModalTitle">Add Business</div>
+    <input class="biz-field" id="bizName"  placeholder="Business name"                    autocapitalize="words"/>
+    <input class="biz-field" id="bizDesc"  placeholder="Short description (optional)"/>
+    <input class="biz-field" id="bizScope" placeholder="Scope tag  e.g. meatsource"       autocapitalize="none"/>
+    <div class="color-swatch-row" id="bizColorRow"></div>
+    <div class="biz-modal-actions">
+      <button class="biz-modal-btn secondary" id="bizCancelBtn">Cancel</button>
+      <button class="biz-modal-btn primary"   id="bizSaveBtn">Save</button>
+    </div>
+    <button class="biz-delete-btn" id="bizDeleteBtn" style="display:none">Delete Business</button>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- Header -->
   <header class="hdr">
-    <div class="hdr-title">GE <span class="hdr-dot"></span></div>
-    <button class="theme-btn" id="themeBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="hdr-title">GE <span class="hdr-dot"></span></div>
+      <span class="status-dot"   id="statusDot"></span>
+      <span class="status-label" id="statusLabel"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="user-email" id="userEmailDisplay"></span>
+      <button class="theme-btn" id="themeBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
-  <!-- Chat screen -->
+  <!-- Scope selector -->
+  <div class="scope-selector" id="scopeSelector">
+    <button class="scope-trigger" id="scopeTrigger">
+      <span class="scope-trigger-dot"></span>
+      <span id="scopeTriggerLabel">Global</span>
+      <span class="scope-chevron">▾</span>
+    </button>
+    <div class="scope-dropdown hidden" id="scopeDropdown"></div>
+  </div>
+
+  <!-- ① Chat -->
   <div class="screen" id="screen-chat">
     <div class="thread" id="thread"></div>
     <div class="input-area">
+      <div class="import-panel" id="importPanel">
+        <div class="import-hdr">Paste context — prepended to your next message</div>
+        <textarea class="import-ta" id="importTa" placeholder="Paste text from any AI, doc, or notes…" rows="4"></textarea>
+        <div class="import-actions">
+          <button class="import-act-btn cancel" id="importCancel">Cancel</button>
+          <button class="import-act-btn ok"     id="importApply">Attach</button>
+        </div>
+      </div>
       <div class="img-bar" id="imgBar">
         <img class="img-thumb" id="imgThumb" src="" alt=""/>
         <span class="img-fname" id="imgFname"></span>
@@ -307,7 +375,7 @@ textarea.composer::placeholder { color:var(--text2); }
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
+            <line x1="9"  y1="15" x2="15" y2="15"/>
           </svg>
         </button>
         <textarea class="composer" id="composer" rows="1" placeholder="Message GE…"></textarea>
@@ -326,40 +394,31 @@ textarea.composer::placeholder { color:var(--text2); }
     </div>
   </div>
 
-  <!-- Memory screen -->
+  <!-- ② Memory -->
   <div class="screen hidden" id="screen-memory">
-    <div class="mem-hdr">Today's Session</div>
-    <div class="mem-list" id="memList">
-      <div class="mem-empty" id="memEmpty">Loading…</div>
-    </div>
+    <div class="mem-hdr">Memory</div>
+    <div class="mem-list" id="memList"></div>
   </div>
 
-  <!-- Settings screen -->
-  <div class="screen hidden" id="screen-settings">
-    <div class="settings-scroll">
+  <!-- ③ Businesses -->
+  <div class="screen hidden" id="screen-businesses">
+    <div class="biz-list" id="bizList"></div>
+    <button class="biz-fab" id="bizFab">＋</button>
+  </div>
+
+  <!-- ④ State -->
+  <div class="screen hidden" id="screen-state">
+    <div class="state-scroll">
 
       <div class="s-group">
-        <div class="s-label">Appearance</div>
+        <div class="s-label">Runtime</div>
         <div class="s-row">
-          <span>Dark Mode</span>
-          <label class="tog">
-            <input type="checkbox" id="themeTog" checked/>
-            <div class="tog-track"></div>
-            <div class="tog-thumb"></div>
-          </label>
+          <span>Worker</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="s-status-dot" id="stateStatusDot"></span>
+            <span class="s-val" id="stateStatusLabel">Checking…</span>
+          </div>
         </div>
-      </div>
-
-      <div class="s-group">
-        <div class="s-label">Scope</div>
-        <div class="scope-grid" id="scopeGrid">
-          <button class="s-scope on" data-scope="global">Global</button>
-          <button class="s-scope s-scope-add" id="scopeAddBtn" title="Add scope">＋</button>
-        </div>
-      </div>
-
-      <div class="s-group">
-        <div class="s-label">Session</div>
         <div class="s-row">
           <span>Session ID</span>
           <span class="s-val" id="sessDisplay">—</span>
@@ -374,29 +433,82 @@ textarea.composer::placeholder { color:var(--text2); }
         </div>
       </div>
 
+      <div class="s-group">
+        <div class="s-label">Appearance</div>
+        <div class="s-row">
+          <span>Dark Mode</span>
+          <label class="tog">
+            <input type="checkbox" id="themeTog" checked/>
+            <div class="tog-track"></div>
+            <div class="tog-thumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="s-group">
+        <div class="s-label">Custom Scopes</div>
+        <div class="scope-grid" id="scopeGrid">
+          <button class="s-scope on" data-scope="global">Global</button>
+          <button class="s-scope s-scope-add" id="scopeAddBtn">＋</button>
+        </div>
+      </div>
+
+      <div class="s-group">
+        <div class="s-label">Account</div>
+        <div class="s-row">
+          <span>Signed in as</span>
+          <span class="s-val" id="settingsEmailDisplay">—</span>
+        </div>
+        <div class="s-row" style="border-bottom:none">
+          <span>Sign Out</span>
+          <button class="s-logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- Bottom nav -->
+  <!-- ⑤ Review -->
+  <div class="screen hidden" id="screen-review">
+    <div class="mem-hdr" id="reviewHdr">Review</div>
+    <div class="review-scroll" id="reviewList"></div>
+  </div>
+
+  <!-- Bottom nav — 5 tabs -->
   <nav class="nav">
     <button class="nav-item active" data-tab="chat">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
       <span class="nav-lbl">Chat</span>
     </button>
     <button class="nav-item" data-tab="memory">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
       </svg>
       <span class="nav-lbl">Memory</span>
     </button>
-    <button class="nav-item" data-tab="settings">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    <button class="nav-item" data-tab="businesses">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
       </svg>
-      <span class="nav-lbl">Settings</span>
+      <span class="nav-lbl">Businesses</span>
+    </button>
+    <button class="nav-item" data-tab="state">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-lbl">State</span>
+    </button>
+    <button class="nav-item" data-tab="review">
+      <span class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span class="nav-badge" id="reviewBadge"></span>
+      </span>
+      <span class="nav-lbl">Review</span>
     </button>
   </nav>
 </div>
@@ -407,15 +519,33 @@ textarea.composer::placeholder { color:var(--text2); }
 <script>
 const WORKER = 'https://ge-ai.grdrys26.workers.dev';
 
-// ── State ───────────────────────────────────────────────────
-let sessionId   = null;
-let scope       = localStorage.getItem('ge_scope') || 'global';
-let messages    = [];   // { role, text, model?, scope?, thinkMode?, saved?, dismissed? }
-let attached    = null; // { base64, name }
-let busy        = false;
+// ── Auth ──────────────────────────────────────────────────────
+let currentUser   = null;
+let currentUserId = null;
 
-// ── DOM ─────────────────────────────────────────────────────
-const $  = id => document.getElementById(id);
+let _cachedToken = null;
+async function getToken() {
+  if (!currentUser) return null;
+  _cachedToken = await currentUser.getIdToken();
+  return _cachedToken;
+}
+async function authFetch(url, opts = {}) {
+  const token = await getToken();
+  return fetch(url, {
+    ...opts,
+    headers: { ...(opts.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+}
+
+// ── State ─────────────────────────────────────────────────────
+let sessionId = null;
+let scope     = localStorage.getItem('ge_scope') || 'global';
+let messages  = [];
+let attached  = null;
+let busy      = false;
+
+// ── DOM shortcuts ─────────────────────────────────────────────
+const $           = id => document.getElementById(id);
 const thread      = $('thread');
 const composer    = $('composer');
 const sendBtn     = $('sendBtn');
@@ -431,11 +561,10 @@ const sessDisplay = $('sessDisplay');
 const modelDis    = $('modelDisplay');
 const msgCountDis = $('msgCountDisplay');
 const memList     = $('memList');
-const memEmpty    = $('memEmpty');
 const toastEl     = $('toast');
 const scopeGrid   = $('scopeGrid');
 
-// ── Theme ────────────────────────────────────────────────────
+// ── Theme ─────────────────────────────────────────────────────
 let isDark = localStorage.getItem('ge_theme') !== 'light';
 function applyTheme(dark) {
   isDark = dark;
@@ -444,10 +573,193 @@ function applyTheme(dark) {
   localStorage.setItem('ge_theme', dark ? 'dark' : 'light');
 }
 applyTheme(isDark);
-themeBtn.onclick = () => applyTheme(!isDark);
-themeTog.onchange = e => applyTheme(e.target.checked);
+themeBtn.onclick  = () => applyTheme(!isDark);
+themeTog.onchange = e  => applyTheme(e.target.checked);
 
-// ── Scope ────────────────────────────────────────────────────
+// ── Businesses ────────────────────────────────────────────────
+const DEFAULT_BUSINESSES = [
+  { id: '1', name: 'MEATSOURCE',       description: 'Premium frozen meat delivery',  scope: 'meatsource', color: '#FF453A' },
+  { id: '2', name: 'Gabay Essentials', description: 'Affiliate marketing system',    scope: 'gabay',      color: '#00FF87' },
+  { id: '3', name: 'Exis OS',          description: 'Personal OS project',           scope: 'exis-os',    color: '#0A84FF' },
+];
+let businesses = [];
+
+function loadBusinesses() {
+  try { businesses = JSON.parse(localStorage.getItem('ge_businesses')); } catch { businesses = null; }
+  if (!businesses || !businesses.length) businesses = DEFAULT_BUSINESSES.map(b => ({ ...b }));
+  saveBusinesses();
+}
+function saveBusinesses() {
+  localStorage.setItem('ge_businesses', JSON.stringify(businesses));
+}
+
+function renderBusinesses() {
+  const list = $('bizList');
+  list.innerHTML = '';
+  businesses.forEach(biz => {
+    const card = document.createElement('div');
+    card.className = 'biz-card';
+    card.style.borderLeftColor = biz.color;
+
+    const main = document.createElement('div');
+    main.className = 'biz-card-main';
+    main.innerHTML =
+      `<div class="biz-card-name">${biz.name}</div>` +
+      `<div class="biz-card-desc">${biz.description || ''}</div>` +
+      `<span class="biz-scope-pill" style="background:${biz.color}22;color:${biz.color}">${biz.scope}</span>`;
+
+    const chatBtn = document.createElement('button');
+    chatBtn.className = 'biz-chat-btn';
+    chatBtn.textContent = 'Chat →';
+    chatBtn.onclick = e => { e.stopPropagation(); applyScope(biz.scope); switchTab('chat'); };
+
+    card.appendChild(main);
+    card.appendChild(chatBtn);
+
+    // Long press → edit modal
+    let pressTimer;
+    const startPress = () => { pressTimer = setTimeout(() => openBizModal(biz), 600); };
+    const cancelPress = () => clearTimeout(pressTimer);
+    card.addEventListener('mousedown',  startPress);
+    card.addEventListener('touchstart', startPress, { passive: true });
+    card.addEventListener('mouseup',    cancelPress);
+    card.addEventListener('mouseleave', cancelPress);
+    card.addEventListener('touchend',   cancelPress);
+
+    // Tap → set scope + go to chat
+    card.onclick = () => { applyScope(biz.scope); switchTab('chat'); };
+
+    list.appendChild(card);
+  });
+}
+
+// ── Scope selector dropdown ───────────────────────────────────
+function closeDropdown() {
+  $('scopeDropdown').classList.add('hidden');
+}
+
+function renderScopePills() {
+  const label    = $('scopeTriggerLabel');
+  const dropdown = $('scopeDropdown');
+
+  const activeBiz = businesses.find(b => b.scope === scope);
+  label.textContent = activeBiz
+    ? activeBiz.name.toUpperCase()
+    : scope === 'global' ? 'GLOBAL' : scope.toUpperCase();
+
+  dropdown.innerHTML = '';
+
+  businesses.forEach(biz => {
+    if (biz.scope === scope) return;
+    const opt = document.createElement('button');
+    opt.className = 'scope-option';
+    const dot = document.createElement('span');
+    dot.className = 'scope-option-dot';
+    dot.style.background = biz.color;
+    opt.appendChild(dot);
+    opt.appendChild(document.createTextNode(biz.name));
+    opt.onclick = () => { applyScope(biz.scope); closeDropdown(); };
+    dropdown.appendChild(opt);
+  });
+
+  if (scope !== 'global') {
+    const glob = document.createElement('button');
+    glob.className = 'scope-option';
+    const dot = document.createElement('span');
+    dot.className = 'scope-option-dot';
+    dot.style.background = '#00FF87';
+    glob.appendChild(dot);
+    glob.appendChild(document.createTextNode('Global'));
+    glob.onclick = () => { applyScope('global'); closeDropdown(); };
+    dropdown.appendChild(glob);
+  }
+
+  customScopes.forEach(name => {
+    if (name === scope) return;
+    const opt = document.createElement('button');
+    opt.className = 'scope-option';
+    const dot = document.createElement('span');
+    dot.className = 'scope-option-dot';
+    dot.style.background = '#8E8E93';
+    opt.appendChild(dot);
+    opt.appendChild(document.createTextNode(name));
+    opt.onclick = () => { applyScope(name); closeDropdown(); };
+    dropdown.appendChild(opt);
+  });
+}
+
+$('scopeTrigger').onclick = e => {
+  e.stopPropagation();
+  $('scopeDropdown').classList.toggle('hidden');
+};
+document.addEventListener('click', closeDropdown);
+
+// ── Business modal ────────────────────────────────────────────
+const BIZ_COLORS = ['#FF453A','#00FF87','#0A84FF','#FF9F0A','#BF5AF2','#FF375F','#30D158','#64D2FF'];
+let editingBizId     = null;
+let selectedBizColor = '#00FF87';
+
+function renderColorSwatches() {
+  const row = $('bizColorRow');
+  row.innerHTML = '';
+  BIZ_COLORS.forEach(c => {
+    const sw = document.createElement('button');
+    sw.className = 'color-swatch' + (c === selectedBizColor ? ' active' : '');
+    sw.style.background = c;
+    sw.onclick = () => { selectedBizColor = c; renderColorSwatches(); };
+    row.appendChild(sw);
+  });
+}
+
+function openBizModal(biz) {
+  editingBizId         = biz ? biz.id : null;
+  $('bizModalTitle').textContent = biz ? 'Edit Business' : 'Add Business';
+  $('bizName').value   = biz ? biz.name        : '';
+  $('bizDesc').value   = biz ? biz.description : '';
+  $('bizScope').value  = biz ? biz.scope       : '';
+  selectedBizColor     = biz ? biz.color       : '#00FF87';
+  renderColorSwatches();
+  $('bizDeleteBtn').style.display = biz ? 'block' : 'none';
+  $('bizModal').classList.remove('hidden');
+  setTimeout(() => $('bizName').focus(), 80);
+}
+
+function closeBizModal() {
+  $('bizModal').classList.add('hidden');
+  editingBizId = null;
+}
+
+$('bizFab').onclick    = () => openBizModal(null);
+$('bizCancelBtn').onclick = closeBizModal;
+$('bizModal').addEventListener('click', e => { if (e.target === $('bizModal')) closeBizModal(); });
+
+$('bizSaveBtn').onclick = () => {
+  const name = $('bizName').value.trim();
+  const desc = $('bizDesc').value.trim();
+  const sc   = $('bizScope').value.trim().toLowerCase().replace(/\s+/g, '-');
+  if (!name || !sc) { toast('Name and scope are required'); return; }
+  if (editingBizId) {
+    businesses = businesses.map(b => b.id === editingBizId
+      ? { ...b, name, description: desc, scope: sc, color: selectedBizColor } : b);
+  } else {
+    businesses.push({ id: Date.now().toString(), name, description: desc, scope: sc, color: selectedBizColor });
+  }
+  saveBusinesses();
+  renderBusinesses();
+  renderScopePills();
+  closeBizModal();
+};
+
+$('bizDeleteBtn').onclick = () => {
+  if (!editingBizId || !confirm('Delete this business?')) return;
+  businesses = businesses.filter(b => b.id !== editingBizId);
+  saveBusinesses();
+  renderBusinesses();
+  renderScopePills();
+  closeBizModal();
+};
+
+// ── Custom scopes (State tab) ─────────────────────────────────
 let customScopes = JSON.parse(localStorage.getItem('ge_custom_scopes') || '[]');
 
 function saveCustomScopes() {
@@ -455,10 +767,7 @@ function saveCustomScopes() {
 }
 
 function renderScopes() {
-  // Remove all except Global and the add button
   scopeGrid.querySelectorAll('.s-scope:not([data-scope="global"]):not(.s-scope-add)').forEach(el => el.remove());
-
-  // Insert custom scopes before the add button
   const addBtn = $('scopeAddBtn');
   customScopes.forEach(name => {
     const btn = document.createElement('button');
@@ -466,86 +775,113 @@ function renderScopes() {
     btn.dataset.scope = name;
     btn.textContent = name;
     btn.classList.toggle('on', scope === name);
-
-    // Long-press to rename or delete
     let pressTimer;
-    const startPress = () => { pressTimer = setTimeout(() => showScopeMenu(name, btn), 500); };
+    const startPress = () => { pressTimer = setTimeout(() => showScopeMenu(name), 500); };
     const cancelPress = () => clearTimeout(pressTimer);
-    btn.addEventListener('mousedown', startPress);
+    btn.addEventListener('mousedown',  startPress);
     btn.addEventListener('touchstart', startPress, { passive: true });
-    btn.addEventListener('mouseup', cancelPress);
+    btn.addEventListener('mouseup',    cancelPress);
     btn.addEventListener('mouseleave', cancelPress);
-    btn.addEventListener('touchend', cancelPress);
-
+    btn.addEventListener('touchend',   cancelPress);
     scopeGrid.insertBefore(btn, addBtn);
   });
-
-  // Highlight active
   scopeGrid.querySelectorAll('.s-scope').forEach(p =>
     p.classList.toggle('on', p.dataset.scope === scope));
 }
 
-function showScopeMenu(name, btn) {
-  const action = prompt(`Scope: "${name}"\n\nType new name to rename, or type DELETE to remove:`);
-  if (action === null) return;
+function showScopeMenu(name) {
+  const action = prompt(`Scope: "${name}"\n\nNew name to rename, or type DELETE to remove:`);
+  if (!action) return;
   if (action.trim().toUpperCase() === 'DELETE') {
     customScopes = customScopes.filter(s => s !== name);
     if (scope === name) applyScope('global');
-    saveCustomScopes();
-    renderScopes();
+    saveCustomScopes(); renderScopes();
   } else if (action.trim()) {
-    const newName = action.trim();
-    customScopes = customScopes.map(s => s === name ? newName : s);
-    if (scope === name) scope = newName;
-    saveCustomScopes();
-    renderScopes();
+    const n = action.trim();
+    customScopes = customScopes.map(s => s === name ? n : s);
+    if (scope === name) scope = n;
+    saveCustomScopes(); renderScopes();
   }
 }
 
+function summarizeCurrentSession() {
+  if (!sessionId || !_cachedToken) return;
+  fetch(`${WORKER}/summarize-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_cachedToken}` },
+    body: JSON.stringify({ session_id: sessionId, scope }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 function applyScope(s) {
+  summarizeCurrentSession(); // fire-and-forget before resetting
   scope = s;
+  sessionId = null;
   localStorage.setItem('ge_scope', s);
   scopeGrid.querySelectorAll('.s-scope').forEach(p =>
     p.classList.toggle('on', p.dataset.scope === s));
+  renderScopePills();
 }
 
-// Global scope click
-scopeGrid.querySelector('[data-scope="global"]').onclick = () => applyScope('global');
+window.addEventListener('beforeunload', () => {
+  summarizeCurrentSession();
+});
 
-// Delegate clicks on dynamic custom scope pills
+scopeGrid.querySelector('[data-scope="global"]').onclick = () => applyScope('global');
 scopeGrid.addEventListener('click', e => {
   const p = e.target.closest('.s-scope[data-scope]');
   if (p && p.dataset.scope !== 'global' && !p.classList.contains('s-scope-add')) applyScope(p.dataset.scope);
 });
-
-// Add scope button
 $('scopeAddBtn').onclick = () => {
   const name = prompt('New scope name:');
   if (!name?.trim()) return;
-  const trimmed = name.trim();
-  if (customScopes.includes(trimmed) || trimmed.toLowerCase() === 'global') {
-    toast('Scope already exists'); return;
-  }
-  customScopes.push(trimmed);
-  saveCustomScopes();
-  renderScopes();
-  applyScope(trimmed);
+  const t = name.trim();
+  if (customScopes.includes(t) || t.toLowerCase() === 'global') { toast('Scope already exists'); return; }
+  customScopes.push(t);
+  saveCustomScopes(); renderScopes(); applyScope(t);
 };
 
 renderScopes();
 applyScope(scope);
 
-// ── Nav ──────────────────────────────────────────────────────
+// ── Phase 6.5: Runtime state ──────────────────────────────────
+const RUNTIME_STATES = {
+  connected: { color: '#00FF87', label: 'Runtime Connected' },
+  degraded:  { color: '#FF9F0A', label: 'Runtime Degraded'  },
+  failed:    { color: '#FF453A', label: 'Runtime Failed'     },
+};
+function setRuntimeState(state) {
+  const cfg = RUNTIME_STATES[state] || RUNTIME_STATES.failed;
+  const dot1 = $('statusDot'),       lbl1 = $('statusLabel');
+  const dot2 = $('stateStatusDot'),  lbl2 = $('stateStatusLabel');
+  [dot1, dot2].forEach(d => d.style.background = cfg.color);
+  [lbl1, lbl2].forEach(l => { l.textContent = cfg.label; l.style.color = cfg.color; });
+}
+
+// ── Health check ──────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const res = await fetch(`${WORKER}/health`);
+    if (!res.ok) throw new Error();
+    setRuntimeState('connected');
+  } catch {
+    setRuntimeState('failed');
+  }
+}
+
+// ── Nav ───────────────────────────────────────────────────────
 const navItems = document.querySelectorAll('.nav-item');
 function switchTab(tab) {
   navItems.forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   $(`screen-${tab}`).classList.remove('hidden');
   if (tab === 'memory') loadMemory();
+  if (tab === 'review') loadReview();
 }
 navItems.forEach(n => n.onclick = () => switchTab(n.dataset.tab));
 
-// ── Toast ────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────
 let tTimer;
 function toast(msg) {
   toastEl.textContent = msg;
@@ -554,72 +890,38 @@ function toast(msg) {
   tTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
 }
 
-// ── Textarea ─────────────────────────────────────────────────
+// ── Textarea auto-grow ────────────────────────────────────────
 function grow() {
   composer.style.height = '22px';
   composer.style.height = Math.min(composer.scrollHeight, 96) + 'px';
 }
 composer.addEventListener('input', grow);
 
-// ── Import from another AI ────────────────────────────────────
-const importBtn = $('importBtn');
+// ── Import context panel ──────────────────────────────────────
+let importContext = '';
+const importBtn   = $('importBtn');
+const importPanel = $('importPanel');
+const importTa    = $('importTa');
 
-importBtn.onclick = async () => {
-  const text = prompt('Paste text from another AI (ChatGPT, Gemini, etc.):');
-  if (!text?.trim()) return;
-
-  const source = prompt('Source name (e.g. ChatGPT, Gemini, Grok):') || 'Unknown AI';
-  if (!source) return;
-
-  // Show "Importing…" in thread
-  const statusWrap = document.createElement('div');
-  statusWrap.className = 'msg assistant';
-  const statusBbl = document.createElement('div');
-  statusBbl.className = 'bubble ai-bbl';
-  statusBbl.style.color = 'var(--text2)';
-  statusBbl.textContent = `Importing from ${source}…`;
-  statusWrap.appendChild(statusBbl);
-  thread.appendChild(statusWrap);
-  thread.scrollTop = thread.scrollHeight;
-
-  importBtn.disabled = true;
-  importBtn.classList.add('importing');
-
-  try {
-    const res = await fetch(`${WORKER}/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collection: 'memory_core',
-        documents: [{ source: source.trim(), content: text.trim() }],
-      }),
-    });
-
-    const data = await res.json();
-
-    statusWrap.remove();
-
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
-    const count = data.imported ?? 0;
-    const result = `Imported ${count} memory item${count !== 1 ? 's' : ''} from ${source}.\n\nPreview: ${text.trim().substring(0, 120)}${text.length > 120 ? '…' : ''}`;
-
-    messages.push({ role: 'assistant', text: result, saved: true, dismissed: true });
-    saveLocal();
-    renderAll();
-
-  } catch (err) {
-    statusWrap.remove();
-    messages.push({ role: 'assistant', text: `Import failed: ${err.message}`, saved: true, dismissed: true });
-    saveLocal();
-    renderAll();
-  } finally {
-    importBtn.disabled = false;
-    importBtn.classList.remove('importing');
-  }
+importBtn.onclick = () => {
+  importPanel.classList.toggle('show');
+  if (importPanel.classList.contains('show')) importTa.focus();
+};
+$('importCancel').onclick = () => {
+  importPanel.classList.remove('show');
+  importContext = ''; importTa.value = '';
+  importBtn.classList.remove('context-on');
+};
+$('importApply').onclick = () => {
+  const val = importTa.value.trim();
+  if (!val) { importPanel.classList.remove('show'); return; }
+  importContext = val;
+  importPanel.classList.remove('show');
+  importBtn.classList.add('context-on');
+  toast('Context attached — send your message');
 };
 
-// ── Image attach ─────────────────────────────────────────────
+// ── Image attach ──────────────────────────────────────────────
 attachBtn.onclick = () => imageInput.click();
 imageInput.addEventListener('change', e => {
   const f = e.target.files[0];
@@ -637,14 +939,13 @@ imageInput.addEventListener('change', e => {
 });
 imgRm.onclick = () => { attached = null; imgBar.classList.remove('show'); };
 
-// ── Render one message bubble ────────────────────────────────
+// ── Render message bubble ─────────────────────────────────────
 function renderMsg(msg, idx) {
   const wrap = document.createElement('div');
   wrap.className = `msg ${msg.role}`;
   wrap.dataset.idx = idx;
 
   if (msg.role === 'assistant') {
-    // Think mode badge (shown above bubble)
     if (msg.thinkMode) {
       const badge = document.createElement('div');
       badge.className = 'think-badge';
@@ -657,7 +958,6 @@ function renderMsg(msg, idx) {
     bbl.textContent = msg.text;
     wrap.appendChild(bbl);
 
-    // Meta: scope + model
     if (msg.model || (msg.scope && msg.scope !== 'global')) {
       const meta = document.createElement('div');
       meta.className = 'msg-meta';
@@ -676,7 +976,6 @@ function renderMsg(msg, idx) {
       wrap.appendChild(meta);
     }
 
-    // Memory save chip
     if (!msg.saved && !msg.dismissed) {
       const row = document.createElement('div');
       row.className = 'save-row';
@@ -688,54 +987,60 @@ function renderMsg(msg, idx) {
         ok.disabled = true;
         ok.textContent = 'Saving…';
         try {
-          await fetch(`${WORKER}/save`, {
+          const res = await authFetch(`${WORKER}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content:    msg.text,
-              scope:      msg.scope || scope,
-              tags:       [],
-              pinned:     false,
-              session_id: sessionId,
-            })
+            body: JSON.stringify({ content: msg.text, scope: msg.scope || scope, tags: [], pinned: false, session_id: sessionId }),
           });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           ok.textContent = 'Saved ✓';
+          ok.style.background = '#00C46A';
+          ok.style.color = '#000';
           no.remove();
           messages[idx].saved = true;
           saveLocal();
         } catch {
-          ok.textContent = 'Save to memory';
+          ok.textContent = 'Failed — retry';
+          ok.style.background = '#FF453A';
+          ok.style.color = '#FFF';
           ok.disabled = false;
-          toast('Save failed — try again');
         }
       };
 
       const no = document.createElement('button');
       no.className = 'save-chip no';
       no.textContent = 'Dismiss';
-      no.onclick = () => {
-        messages[idx].dismissed = true;
-        saveLocal();
-        row.remove();
-      };
+      no.onclick = () => { messages[idx].dismissed = true; saveLocal(); row.remove(); };
 
       row.appendChild(ok);
       row.appendChild(no);
       wrap.appendChild(row);
     }
-
   } else {
     const bbl = document.createElement('div');
     bbl.className = 'bubble user-bbl';
     bbl.textContent = msg.text;
     wrap.appendChild(bbl);
   }
-
   return wrap;
 }
 
+function stripMarkdown(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, m => m.replace(/^```[^\n]*\n?/,'').replace(/\n?```$/,''))
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*\*(.+?)\*\*\*/gs, '$1')
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/\*(.+?)\*/gs, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+] /gm, '')
+    .replace(/^\s*\d+\. /gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function shortModel(m) {
-  return m.replace('anthropic/', '').replace('openai/', '').replace('google/', '');
+  return m.replace('anthropic/','').replace('openai/','').replace('google/','');
 }
 
 function renderAll() {
@@ -745,15 +1050,11 @@ function renderAll() {
   msgCountDis.textContent = messages.length;
 }
 
-// ── Persist ──────────────────────────────────────────────────
-function saveLocal() {
-  localStorage.setItem('ge_msgs', JSON.stringify(messages.slice(-120)));
-}
-function loadLocal() {
-  try { messages = JSON.parse(localStorage.getItem('ge_msgs') || '[]'); } catch {}
-}
+// ── Persist ───────────────────────────────────────────────────
+function saveLocal() { localStorage.setItem('ge_msgs', JSON.stringify(messages.slice(-120))); }
+function loadLocal()  { try { messages = JSON.parse(localStorage.getItem('ge_msgs') || '[]'); } catch {} }
 
-// ── Send ─────────────────────────────────────────────────────
+// ── Send ──────────────────────────────────────────────────────
 async function send() {
   const text = composer.value.trim();
   if ((!text && !attached) || busy) return;
@@ -762,18 +1063,27 @@ async function send() {
   attached = null;
   imgBar.classList.remove('show');
 
-  const displayText = img ? `📷 ${img.name}${text ? '\n' + text : ''}` : text;
-  messages.push({ role: 'user', text: displayText });
+  const ctx = importContext;
+  if (ctx) { importContext = ''; importTa.value = ''; importBtn.classList.remove('context-on'); }
+  const messageToSend = ctx ? `[Context]\n${ctx}\n\n[Message]\n${text}` : text;
+
+  messages.push({ role: 'user', text: img ? `📷 ${img.name}${text ? '\n' + text : ''}` : text });
   saveLocal();
   renderAll();
-
   composer.value = ''; grow();
   busy = true; sendBtn.disabled = true;
 
-  // typing indicator
+  const isThinkRequest = text.trimStart().startsWith('/think');
+
   const typing = document.createElement('div');
   typing.className = 'msg assistant';
   typing.id = 'typing';
+  if (isThinkRequest) {
+    const b = document.createElement('div');
+    b.className = 'think-badge'; b.id = 'typing-think-badge';
+    b.innerHTML = `<span class="think-dot"></span>Thinking…`;
+    typing.appendChild(b);
+  }
   const dots = document.createElement('div');
   dots.className = 'typing-dots';
   dots.innerHTML = '<span></span><span></span><span></span>';
@@ -781,32 +1091,21 @@ async function send() {
   thread.appendChild(typing);
   thread.scrollTop = thread.scrollHeight;
 
-  // detect /think before sending so streaming badge can show immediately
-  const isThinkRequest = text.trimStart().startsWith('/think');
-
-  let fullText = '';
-  let streamWrap = null;
-  let streamBbl  = null;
-  let done = {};
+  let fullText = '', streamWrap = null, streamBbl = null, done = {};
 
   try {
-    const body = { message: text || '', session_id: sessionId, scope };
+    const body = { message: messageToSend || '', session_id: sessionId, scope };
     if (img) body.image = img.base64;
 
-    const res = await fetch(`${WORKER}/chat`, {
+    const res = await authFetch(`${WORKER}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.error || `HTTP ${res.status}`);
-    }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `HTTP ${res.status}`); }
 
-    const ct = res.headers.get('Content-Type') || '';
-
-    if (ct.includes('text/event-stream')) {
+    if ((res.headers.get('Content-Type') || '').includes('text/event-stream')) {
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = '';
@@ -817,22 +1116,18 @@ async function send() {
         buf += dec.decode(value, { stream: true });
         const lines = buf.split('\n');
         buf = lines.pop() ?? '';
-
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           try {
             const chunk = JSON.parse(line.slice(6));
-
             if (chunk.type === 'text') {
               if (!streamBbl) {
                 typing.remove();
                 streamWrap = document.createElement('div');
                 streamWrap.className = 'msg assistant';
-                // provisional think badge shown as soon as first token arrives
                 if (isThinkRequest) {
                   const b = document.createElement('div');
-                  b.className = 'think-badge';
-                  b.id = 'stream-think-badge';
+                  b.className = 'think-badge'; b.id = 'stream-think-badge';
                   b.innerHTML = `<span class="think-dot"></span>Thinking…`;
                   streamWrap.appendChild(b);
                 }
@@ -840,36 +1135,30 @@ async function send() {
                 streamBbl.className = 'bubble ai-bbl streaming';
                 streamWrap.appendChild(streamBbl);
                 thread.appendChild(streamWrap);
+                thread.scrollTop = thread.scrollHeight;
               }
               fullText += chunk.content;
-              streamBbl.textContent = fullText;
+              streamBbl.textContent = stripMarkdown(fullText);
               thread.scrollTop = thread.scrollHeight;
-
             } else if (chunk.type === 'done') {
               done = chunk;
-              if (chunk.session_id) {
-                sessionId = chunk.session_id;
-                sessDisplay.textContent = chunk.session_id;
-              }
+              if (chunk.session_id) { sessionId = chunk.session_id; sessDisplay.textContent = chunk.session_id; }
               if (chunk.model) modelDis.textContent = shortModel(chunk.model);
               if (streamBbl) streamBbl.classList.remove('streaming');
-              // finalize or remove the provisional think badge based on server response
+              // Phase 6.5: update runtime state from done metadata
+              if (chunk.runtime_degraded) setRuntimeState('degraded');
+              else if (chunk.status === 'ok') setRuntimeState('connected');
               const badge = document.getElementById('stream-think-badge');
               if (badge) {
-                if (chunk.think_mode) {
-                  badge.innerHTML = `<span class="think-dot"></span>Think Mode`;
-                  badge.removeAttribute('id');
-                } else {
-                  badge.remove();
-                }
+                if (chunk.think_mode) { badge.innerHTML = `<span class="think-dot"></span>Think Mode`; badge.removeAttribute('id'); }
+                else badge.remove();
               }
             }
           } catch {}
         }
       }
 
-      // drain any data still buffered when the reader closes
-      // (the done chunk can arrive in the last network chunk without a trailing newline pair)
+      // drain remaining buffer
       if (buf.trim()) {
         for (const line of buf.split('\n')) {
           if (!line.startsWith('data: ')) continue;
@@ -880,126 +1169,450 @@ async function send() {
               if (chunk.session_id) { sessionId = chunk.session_id; sessDisplay.textContent = chunk.session_id; }
               if (chunk.model) modelDis.textContent = shortModel(chunk.model);
               if (streamBbl) streamBbl.classList.remove('streaming');
+              if (chunk.runtime_degraded) setRuntimeState('degraded');
+              else if (chunk.status === 'ok') setRuntimeState('connected');
               const badge = document.getElementById('stream-think-badge');
               if (badge) {
-                if (chunk.think_mode) {
-                  badge.innerHTML = `<span class="think-dot"></span>Think Mode`;
-                  badge.removeAttribute('id');
-                } else {
-                  badge.remove();
-                }
+                if (chunk.think_mode) { badge.innerHTML = `<span class="think-dot"></span>Think Mode`; badge.removeAttribute('id'); }
+                else badge.remove();
               }
             }
           } catch {}
         }
       }
-
+      // Phase 8: synthetic done if stream closed without sending a done chunk
+      if (!done.type) {
+        done = {
+          type: 'done', message: fullText,
+          intent: 'fallback', model: null, scope,
+          memory_loaded: 0, session_id: sessionId,
+          status: fullText ? 'ok' : 'fallback',
+          runtime_degraded: false,
+        };
+        if (streamBbl) streamBbl.classList.remove('streaming');
+        if (fullText) setRuntimeState('connected');
+        else setRuntimeState('degraded');
+      }
     } else {
       typing.remove();
       const data = await res.json();
       fullText = data.reply || '—';
       if (data.session_id) { sessionId = data.session_id; sessDisplay.textContent = data.session_id; }
     }
-
-  } catch (err) {
+  } catch {
     typing.remove();
-    fullText = `Error: ${err.message}`;
+    fullText = 'GE is unavailable — check your connection and try again.';
+    setRuntimeState('failed');
   }
 
   streamWrap?.remove();
-
   if (fullText) {
     messages.push({
-      role:      'assistant',
-      text:      fullText,
-      model:     done.model     || null,
-      scope:     done.scope     || null,
-      thinkMode: done.think_mode || false,
-      saved:     false,
-      dismissed: false,
+      role: 'assistant', text: stripMarkdown(fullText),
+      model: done.model || null, scope: done.scope || null,
+      thinkMode: done.think_mode || false, saved: false, dismissed: false,
     });
     saveLocal();
   }
-
   renderAll();
-  busy = false;
-  sendBtn.disabled = false;
+  busy = false; sendBtn.disabled = false;
   composer.focus();
+  resetInactivityTimer();
+  checkPendingCount();
 }
 
 sendBtn.onclick = send;
-composer.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-});
+composer.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
 
-// ── Memory tab ───────────────────────────────────────────────
+// ── Memory tab ────────────────────────────────────────────────
+function memDateStr(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' +
+    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function buildMemItem(m, isPending) {
+  const item = document.createElement('div');
+  item.className = 'mem-item';
+
+  const txt = document.createElement('div');
+  txt.className = 'mem-item-text';
+  const content = m.content || '';
+  txt.textContent = content.length > 120 ? content.substring(0, 120) + '…' : content;
+  item.appendChild(txt);
+
+  const foot = document.createElement('div');
+  foot.className = 'mem-item-foot';
+
+  if (m.scope) {
+    const sp = document.createElement('span');
+    sp.className = 'mem-scope-pill';
+    sp.textContent = m.scope;
+    foot.appendChild(sp);
+  }
+
+  const ts = m.proposed_at || m.createdAt;
+  if (ts) {
+    const t = document.createElement('span');
+    t.className = 'mem-item-time';
+    t.textContent = memDateStr(ts);
+    foot.appendChild(t);
+  }
+
+  if (isPending) {
+    const badge = document.createElement('span');
+    badge.className = 'mem-pending-badge';
+    badge.textContent = 'PENDING';
+    foot.appendChild(badge);
+
+    const btn = document.createElement('button');
+    btn.className = 'mem-approve-btn';
+    btn.textContent = 'Approve';
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        const res = await authFetch(`${WORKER}/admin/approve-memory`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: m._id }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        item.style.opacity = '0.4';
+        btn.textContent = 'Approved ✓';
+        badge.textContent = 'APPROVED';
+        badge.style.color = '#00FF87';
+      } catch {
+        btn.textContent = 'Failed';
+        btn.disabled = false;
+      }
+    };
+    foot.appendChild(btn);
+  }
+
+  item.appendChild(foot);
+  return item;
+}
+
+function memSectionHdr(label) {
+  const hdr = document.createElement('div');
+  hdr.className = 'mem-section-hdr';
+  hdr.textContent = label;
+  return hdr;
+}
+
 async function loadMemory() {
   memList.innerHTML = '';
-  const empty = document.createElement('div');
-  empty.className = 'mem-empty';
-  empty.textContent = 'Loading…';
-  memList.appendChild(empty);
+
+  const loading = document.createElement('div');
+  loading.className = 'mem-empty';
+  loading.textContent = 'Loading…';
+  memList.appendChild(loading);
 
   try {
-    const res = await fetch(`${WORKER}/recall`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, limit: 60 }),
-    });
-    const data = await res.json();
-    if (data.session_id) { sessionId = data.session_id; sessDisplay.textContent = data.session_id; }
-    const msgs = data.messages || [];
-    if (!msgs.length) { empty.textContent = 'No session memory yet.'; return; }
+    const [reviewRes, recallRes] = await Promise.all([
+      authFetch(`${WORKER}/review`),
+      authFetch(`${WORKER}/recall?limit=50`),
+    ]);
 
     memList.innerHTML = '';
-    msgs.forEach(m => {
-      const item = document.createElement('div');
-      item.className = 'mem-item';
-      const role = document.createElement('div');
-      role.className = 'mem-item-role';
-      role.textContent = m.role === 'user' ? 'You' : 'GE';
-      const txt = document.createElement('div');
-      txt.className = 'mem-item-text';
-      txt.textContent = (m.content || '').substring(0, 240) + (m.content?.length > 240 ? '…' : '');
-      item.appendChild(role);
-      item.appendChild(txt);
-      if (m.timestamp) {
-        const t = document.createElement('div');
-        t.className = 'mem-item-time';
-        t.textContent = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        item.appendChild(t);
-      }
-      memList.appendChild(item);
-    });
+
+    // Pending proposals section
+    const proposals = reviewRes.ok ? (await reviewRes.json()).items || [] : [];
+    memList.appendChild(memSectionHdr(`Pending Review (${proposals.length})`));
+    if (proposals.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'mem-item';
+      empty.style.cssText = 'color:var(--text2);font-size:14px;padding:16px 20px';
+      empty.textContent = 'No pending proposals.';
+      memList.appendChild(empty);
+    } else {
+      proposals.forEach(m => memList.appendChild(buildMemItem(m, true)));
+    }
+
+    // Stable memories section
+    const memories = recallRes.ok ? (await recallRes.json()).items || [] : [];
+    memList.appendChild(memSectionHdr(`Saved Memory (${memories.length})`));
+    if (memories.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'mem-item';
+      empty.style.cssText = 'color:var(--text2);font-size:14px;padding:16px 20px';
+      empty.textContent = 'No approved memories yet.';
+      memList.appendChild(empty);
+    } else {
+      memories.forEach(m => memList.appendChild(buildMemItem(m, false)));
+    }
   } catch {
-    empty.textContent = 'Could not load session memory.';
+    memList.innerHTML = '';
+    const err = document.createElement('div');
+    err.className = 'mem-empty';
+    err.textContent = 'Could not load memory.';
+    memList.appendChild(err);
   }
 }
 
-// ── Boot ─────────────────────────────────────────────────────
-async function boot() {
-  loadLocal();
-  renderAll();
+// ── Inactivity auto-summarize (30 min) ───────────────────────
+let _inactivityTimer = null;
+function resetInactivityTimer() {
+  clearTimeout(_inactivityTimer);
+  _inactivityTimer = setTimeout(() => summarizeCurrentSession(), 30 * 60 * 1000);
+}
+
+// ── Review tab ────────────────────────────────────────────────
+async function loadReview() {
+  const list = $('reviewList');
+  const hdr  = $('reviewHdr');
+  list.innerHTML = '';
+  const loading = document.createElement('div');
+  loading.className = 'review-empty';
+  loading.textContent = 'Loading…';
+  list.appendChild(loading);
 
   try {
-    const res = await fetch(`${WORKER}/recall`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limit: 30 }),
+    const res = await authFetch(`${WORKER}/review`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const items = data.items || [];
+
+    hdr.textContent = items.length ? `Review (${items.length})` : 'Review';
+    list.innerHTML = '';
+
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'review-empty';
+      empty.innerHTML = '<div class="review-empty-icon">✓</div><span>All caught up — no pending proposals.</span>';
+      list.appendChild(empty);
+      return;
+    }
+
+    items.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'review-card';
+
+      const txt = document.createElement('div');
+      txt.className = 'review-card-text';
+      const c = m.content || '';
+      txt.textContent = c.length > 150 ? c.substring(0, 150) + '…' : c;
+      card.appendChild(txt);
+
+      const foot = document.createElement('div');
+      foot.className = 'review-card-foot';
+
+      if (m.scope) {
+        const sp = document.createElement('span');
+        sp.className = 'review-scope-pill';
+        sp.textContent = m.scope;
+        foot.appendChild(sp);
+      }
+
+      const ts = m.proposed_at || m.createdAt;
+      if (ts) {
+        const t = document.createElement('span');
+        t.className = 'review-time';
+        t.textContent = memDateStr(ts);
+        foot.appendChild(t);
+      }
+
+      const btn = document.createElement('button');
+      btn.className = 'review-approve-btn';
+      btn.textContent = 'Approve';
+      btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '…';
+        try {
+          const r = await authFetch(`${WORKER}/admin/approve-memory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: m._id }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          btn.textContent = 'Approved ✓';
+          btn.style.background = '#00C46A';
+          card.style.opacity = '0.5';
+          checkPendingCount();
+        } catch {
+          btn.textContent = 'Failed';
+          btn.disabled = false;
+        }
+      };
+      foot.appendChild(btn);
+      card.appendChild(foot);
+      list.appendChild(card);
     });
+  } catch {
+    list.innerHTML = '';
+    const err = document.createElement('div');
+    err.className = 'review-empty';
+    err.textContent = 'Could not load proposals.';
+    list.appendChild(err);
+  }
+}
+
+// ── Pending count badge + notification ───────────────────────
+let _notifiedPendingSession = false;
+async function checkPendingCount() {
+  try {
+    const res = await authFetch(`${WORKER}/review`);
     if (!res.ok) return;
     const data = await res.json();
-    if (data.session_id) { sessionId = data.session_id; sessDisplay.textContent = data.session_id; }
-    if (data.messages?.length) {
-      const restored = data.messages.map(m => ({ role: m.role, text: m.content || '' }));
-      messages = restored;
-      saveLocal();
-      renderAll();
+    const count = (data.items || []).length;
+    const badge = $('reviewBadge');
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.classList.add('show');
+      if (!_notifiedPendingSession && 'Notification' in window && Notification.permission === 'granted') {
+        _notifiedPendingSession = true;
+        new Notification('GE — Memory Review', {
+          body: `You have ${count} memor${count === 1 ? 'y' : 'ies'} waiting for approval.`,
+          icon: '/ge-icon-192.png',
+          tag: 'ge-pending',
+        });
+      }
+    } else {
+      badge.classList.remove('show');
     }
   } catch {}
 }
 
-boot();
+// ── Boot ──────────────────────────────────────────────────────
+async function boot() {
+  loadBusinesses();
+  renderBusinesses();
+  renderScopePills();
+  loadLocal();
+  renderAll();
+  checkHealth();
+
+  // Cross-device continuity: restore active session
+  try {
+    const res = await authFetch(`${WORKER}/active-session`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.active && data.session_id) {
+        sessionId = data.session_id;
+        sessDisplay.textContent = data.session_id;
+        if (data.scope && data.scope !== scope) {
+          scope = data.scope;
+          localStorage.setItem('ge_scope', scope);
+          scopeGrid.querySelectorAll('.s-scope').forEach(p =>
+            p.classList.toggle('on', p.dataset.scope === scope));
+          renderScopePills();
+        }
+      }
+    }
+  } catch {}
+
+  if (sessionId) {
+    try {
+      const res = await authFetch(`${WORKER}/recall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, limit: 10, last: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages?.length) {
+          messages = data.messages.map(m => ({
+            role:      m.role,
+            text:      m.content || '',
+            model:     m.model     || null,
+            scope:     m.scope     || null,
+            thinkMode: m.think_mode || false,
+            saved:     true,
+            dismissed: true,
+          }));
+          saveLocal(); renderAll();
+        }
+      }
+    } catch {}
+  }
+
+  checkPendingCount();
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  resetInactivityTimer();
+}
+
+// ── Login / Auth UI ───────────────────────────────────────────
+const loginScreen      = $('login-screen');
+const loginEmailEl     = $('loginEmail');
+const loginPassEl      = $('loginPass');
+const loginErrEl       = $('loginErr');
+const loginOkEl        = $('loginOk');
+const loginSignInBtn   = $('loginSignIn');
+const loginCreateBtn   = $('loginCreate');
+const loginForgotBtn   = $('loginForgot');
+const userEmailDis     = $('userEmailDisplay');
+const settingsEmailDis = $('settingsEmailDisplay');
+
+function setLoginBusy(b) {
+  loginSignInBtn.disabled = b;
+  loginCreateBtn.disabled = b;
+  loginForgotBtn.disabled = b;
+}
+function showLoginErr(msg) { loginErrEl.textContent = msg; loginOkEl.textContent  = ''; }
+function showLoginOk(msg)  { loginOkEl.textContent  = msg; loginErrEl.textContent = ''; }
+
+function firebaseMsg(code) {
+  return ({
+    'auth/invalid-email':          'Invalid email address.',
+    'auth/user-not-found':         'No account with that email.',
+    'auth/wrong-password':         'Incorrect password.',
+    'auth/invalid-credential':     'Invalid email or password.',
+    'auth/email-already-in-use':   'Email already in use.',
+    'auth/weak-password':          'Password must be at least 6 characters.',
+    'auth/too-many-requests':      'Too many attempts — try again later.',
+    'auth/network-request-failed': 'Network error. Check connection.',
+  })[code] || 'Authentication error. Try again.';
+}
+
+loginSignInBtn.onclick = async () => {
+  const email = loginEmailEl.value.trim(), pass = loginPassEl.value;
+  if (!email || !pass) { showLoginErr('Enter email and password.'); return; }
+  setLoginBusy(true); showLoginErr('');
+  try { await auth.signInWithEmailAndPassword(email, pass); }
+  catch (e) { showLoginErr(firebaseMsg(e.code)); setLoginBusy(false); }
+};
+
+loginCreateBtn.onclick = async () => {
+  const email = loginEmailEl.value.trim(), pass = loginPassEl.value;
+  if (!email || !pass) { showLoginErr('Enter email and password.'); return; }
+  if (pass.length < 6) { showLoginErr('Password must be at least 6 characters.'); return; }
+  setLoginBusy(true); showLoginErr('');
+  try { await auth.createUserWithEmailAndPassword(email, pass); }
+  catch (e) { showLoginErr(firebaseMsg(e.code)); setLoginBusy(false); }
+};
+
+loginPassEl.addEventListener('keydown', e => { if (e.key === 'Enter') loginSignInBtn.click(); });
+
+loginForgotBtn.onclick = async () => {
+  const email = loginEmailEl.value.trim();
+  if (!email) { showLoginErr('Enter your email address first.'); return; }
+  setLoginBusy(true); showLoginErr('');
+  try { await auth.sendPasswordResetEmail(email); showLoginOk('Reset email sent — check your inbox.'); }
+  catch (e) { showLoginErr(firebaseMsg(e.code)); }
+  finally { setLoginBusy(false); }
+};
+
+$('logoutBtn').onclick = () => auth.signOut();
+
+// ── Auth state listener ───────────────────────────────────────
+auth.onAuthStateChanged(user => {
+  currentUser   = user;
+  currentUserId = user ? user.uid : null;
+  if (user) {
+    loginScreen.classList.add('hidden');
+    setLoginBusy(false); showLoginErr('');
+    const email = user.email || '';
+    userEmailDis.textContent     = email;
+    settingsEmailDis.textContent = email;
+    boot();
+  } else {
+    loginScreen.classList.remove('hidden');
+    messages = []; sessionId = null; thread.innerHTML = '';
+  }
+});
 </script>
 </body>
 </html>
