@@ -1,4 +1,4 @@
-<!-- v=20260418-1800 -->
+<!-- v=20260424-0900 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -281,13 +281,8 @@ textarea.composer::placeholder{color:var(--text2)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey:     "AIzaSyCpVW2WjVWosf-HliOBTGs66EhDo7KHuUk",
-  authDomain: "generator-engine-ge-brain-mem.firebaseapp.com",
-  projectId:  "generator-engine-ge-brain-mem"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+// Firebase API key is NOT stored here — fetched at runtime from the worker (GET /config)
+let auth; // assigned after runtime config fetch; see initApp() in main script
 </script>
 </head>
 <body>
@@ -1597,22 +1592,40 @@ loginForgotBtn.onclick = async () => {
 
 $('logoutBtn').onclick = () => auth.signOut();
 
-// ── Auth state listener ───────────────────────────────────────
-auth.onAuthStateChanged(user => {
-  currentUser   = user;
-  currentUserId = user ? user.uid : null;
-  if (user) {
-    loginScreen.classList.add('hidden');
-    setLoginBusy(false); showLoginErr('');
-    const email = user.email || '';
-    userEmailDis.textContent     = email;
-    settingsEmailDis.textContent = email;
-    boot();
-  } else {
-    loginScreen.classList.remove('hidden');
-    messages = []; sessionId = null; thread.innerHTML = '';
+// ── App init — fetch Firebase key at runtime, then start auth ─
+(async () => {
+  try {
+    const r = await fetch(`${WORKER}/config`);
+    if (!r.ok) throw new Error(`config ${r.status}`);
+    const { apiKey } = await r.json();
+    firebase.initializeApp({
+      apiKey,
+      authDomain: 'generator-engine-ge-brain-mem.firebaseapp.com',
+      projectId:  'generator-engine-ge-brain-mem',
+    });
+    auth = firebase.auth();
+  } catch (e) {
+    console.error('[ge] Firebase init failed:', e.message);
+    $('loginErr').textContent = 'Startup error — reload the page.';
+    return;
   }
-});
+
+  auth.onAuthStateChanged(user => {
+    currentUser   = user;
+    currentUserId = user ? user.uid : null;
+    if (user) {
+      loginScreen.classList.add('hidden');
+      setLoginBusy(false); showLoginErr('');
+      const email = user.email || '';
+      userEmailDis.textContent     = email;
+      settingsEmailDis.textContent = email;
+      boot();
+    } else {
+      loginScreen.classList.remove('hidden');
+      messages = []; sessionId = null; thread.innerHTML = '';
+    }
+  });
+})();
 </script>
 </body>
 </html>

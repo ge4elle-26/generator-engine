@@ -695,6 +695,13 @@ async function handleSummarizeSession(request, env) {
   return jsonResponse({ session_id, scope: scope || 'global', summary });
 }
 
+// GET /config — returns public Firebase client config (key stored as worker secret)
+async function handleConfig(env) {
+  const apiKey = env.FIREBASE_API_KEY;
+  if (!apiKey) return errorResponse('Config not available', 503);
+  return jsonResponse({ apiKey });
+}
+
 // GET /active-session — returns the last active session for the authenticated user
 async function handleActiveSession(request, env) {
   const { user, authError } = await requireAuth(request, env);
@@ -1570,6 +1577,7 @@ export default {
 
     try {
       if (pathname === '/health'            && method === 'GET')  return await handleHealth();
+      if (pathname === '/config'            && method === 'GET')  return await handleConfig(env);
       if (pathname === '/active-session'    && method === 'GET')  return await handleActiveSession(request, env);
       if (pathname === '/summarize-session' && method === 'POST') return await handleSummarizeSession(request, env);
       if (pathname === '/chat'              && method === 'POST') return await handleChat(request, env, ctx);
