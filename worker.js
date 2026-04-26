@@ -1020,7 +1020,8 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
           scope: validatedScope, memory_loaded: relevantMemory.length, session_id: sessionId,
           status: 'ok', runtime_degraded: firestoreDegraded, conversation_id: conversationId,
           think_mode: false, memory_items: relevantMemory.length,
-          notify: hasActionableContent(combined),
+          notify:        hasActionableContent(combined),
+          propose_todos: hasActionableContent(combined),
         })}\n\n`));
         await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({
           type: 'state', active_model: debModel, scope: validatedScope,
@@ -1139,6 +1140,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         think_mode:       mode === 'think',
         memory_items:     relevantMemory.length,
         notify:           responseStatus === 'ok' && hasActionableContent(fullText),
+        propose_todos:    responseStatus === 'ok' && hasActionableContent(fullText) && mode !== 'think',
       })}\n\n`));
       await writer.write(enc.encode(`data: ${JSON.stringify({
         type:         'state',
@@ -1790,6 +1792,67 @@ async function handleSetUserConfig(request, env) {
   return jsonResponse({ ok: true, updated_at: now });
 }
 
+// POST /todo — create a new todo item
+async function handleCreateTodo(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+  const { title, scope, due_date, reminder_time } = body;
+  if (!title || typeof title !== 'string') return errorResponse('title (string) is required');
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+  const id = await db.add(`users/${user.uid}/todos`, {
+    title:         title.trim(),
+    scope:         scope || 'global',
+    due_date:      due_date      || null,
+    reminder_time: reminder_time || null,
+    created_at:    now,
+    completed_at:  null,
+    status:        'open',
+    user_id:       user.uid,
+  });
+  return jsonResponse({ id, todo: { title: title.trim(), scope: scope || 'global', due_date: due_date || null, reminder_time: reminder_time || null, created_at: now, status: 'open' } });
+}
+
+// GET /todos — list todos for the authenticated user, optionally filtered by scope/status
+async function handleListTodos(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  const url = new URL(request.url);
+  const scopeFilter  = url.searchParams.get('scope')  || null;
+  const statusFilter = url.searchParams.get('status') || 'open';
+  const db = await initFirestore(env);
+  const all = await db.query(`users/${user.uid}`, 'todos', { limit: 200 }).catch(() => []);
+  let items = all.filter(i => i.user_id === user.uid);
+  if (scopeFilter)             items = items.filter(i => i.scope === scopeFilter);
+  if (statusFilter !== 'all')  items = items.filter(i => i.status === statusFilter);
+  items.sort((a, b) => {
+    if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
+    if (a.due_date && !b.due_date) return -1;
+    if (!a.due_date && b.due_date) return 1;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+  return jsonResponse({ count: items.length, items });
+}
+
+// POST /todo/complete — mark a todo as done
+async function handleCompleteTodo(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+  const { id } = body;
+  if (!id) return errorResponse('id is required');
+  const db = await initFirestore(env);
+  const todo = await db.get(`users/${user.uid}/todos`, id).catch(() => null);
+  if (!todo) return errorResponse('Todo not found', 404);
+  if (todo.user_id !== user.uid) return errorResponse('Forbidden', 403);
+  const now = new Date().toISOString();
+  await db.set(`users/${user.uid}/todos`, id, { ...todo, status: 'done', completed_at: now });
+  return jsonResponse({ id, status: 'done', completed_at: now });
+}
+
 // GET /scope-session?scope=<scope> — returns the active session for a specific scope
 async function handleScopeSession(request, env) {
   const { user, authError } = await requireAuth(request, env);
@@ -1830,6 +1893,9 @@ export default {
       if (pathname === '/admin/approve-memory' && method === 'POST') return await handleApproveMemory(request, env);
       if (pathname === '/admin/seed' && method === 'POST') return await handleAdminSeed(request, env);
       if (pathname === '/admin/seed-memory' && method === 'POST') return await handleAdminSeedMemory(request, env);
+      if (pathname === '/todo'          && method === 'POST') return await handleCreateTodo(request, env);
+      if (pathname === '/todos'         && method === 'GET')  return await handleListTodos(request, env);
+      if (pathname === '/todo/complete' && method === 'POST') return await handleCompleteTodo(request, env);
       if (pathname === '/user-config'  && method === 'GET')  return await handleGetUserConfig(request, env);
       if (pathname === '/user-config'  && method === 'POST') return await handleSetUserConfig(request, env);
       if (pathname === '/admin/memory' && method === 'GET') return await handleAdminMemory(request, env);

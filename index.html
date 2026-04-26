@@ -1,4 +1,4 @@
-<!-- v=20260425-2000 -->
+<!-- v=20260426-0100 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,6 +67,12 @@ body.light .login-field{background:#FFFFFF;border-color:rgba(0,0,0,.10);color:#1
 body.light .login-btn.secondary{background:#E5E5EA;color:#6C6C70}
 body.light .login-forgot{color:#6C6C70}
 body.light .login-forgot:hover{color:#1C1C1E}
+body.light .tasks-tab-pill{background:#F2F2F7;color:#6C6C70}
+body.light .tasks-tab-pill.active{background:var(--accent);color:#000}
+body.light .todo-card{border-bottom-color:rgba(0,0,0,.08)}
+body.light .todo-check{border-color:rgba(0,0,0,.25)}
+body.light .todo-modal-card{background:#FFFFFF}
+body.light .todo-modal-title{color:#1C1C1E}
 
 /* ── Reset ──────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
@@ -222,7 +228,7 @@ textarea.composer::placeholder{color:var(--text2)}
 .import-act-btn.ok{background:var(--accent);color:#000}
 .import-act-btn.cancel{background:var(--card2);color:var(--text2)}
 
-/* ── Bottom nav — 5 tabs ────────────────────────── */
+/* ── Bottom nav — 6 tabs ────────────────────────── */
 .nav{flex-shrink:0;background:#000000;border-top:.5px solid var(--div);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;min-width:0;position:relative}
 .nav-item.active{color:var(--accent)}
@@ -321,6 +327,41 @@ textarea.composer::placeholder{color:var(--text2)}
 .review-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text2);font-size:15px}
 .review-empty-icon{font-size:44px;opacity:.25}
 
+/* ── Tasks screen ───────────────────────────────── */
+#screen-tasks{position:relative}
+.tasks-hdr{flex-shrink:0;padding:16px 20px 12px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--div)}
+.tasks-scope-tabs{flex-shrink:0;display:flex;gap:8px;padding:10px 16px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tasks-scope-tabs::-webkit-scrollbar{display:none}
+.tasks-tab-pill{flex-shrink:0;border:none;border-radius:999px;padding:6px 14px;font:inherit;font-size:12px;font-weight:600;background:var(--card);color:var(--text2);cursor:pointer}
+.tasks-tab-pill.active{background:var(--accent);color:#000}
+.todo-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 0 80px}
+.todo-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:.5px solid var(--div);cursor:pointer;-webkit-user-select:none;user-select:none;transition:opacity .15s}
+.todo-card:active{opacity:.6}
+.todo-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--text2);flex-shrink:0;margin-top:1px;display:grid;place-items:center;transition:border-color .15s,background .15s}
+.todo-check.done{border-color:var(--accent);background:var(--accent)}
+.todo-check.done::after{content:'✓';font-size:12px;font-weight:700;color:#000}
+.todo-body{flex:1;min-width:0}
+.todo-title-text{font-size:15px;line-height:1.4;margin-bottom:4px}
+.todo-title-text.done{text-decoration:line-through;color:var(--text2)}
+.todo-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.todo-scope-badge{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
+.todo-due-label{font-size:11px;color:var(--text2)}
+.todo-due-label.overdue{color:#FF453A}
+.todo-reminder-label{font-size:11px;color:#FF9F0A}
+.todo-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text2);font-size:15px}
+.todo-empty-icon{font-size:40px;opacity:.25}
+.todo-fab{position:absolute;bottom:16px;right:16px;width:52px;height:52px;border-radius:50%;border:none;background:#00FF87;color:#000;font-size:30px;line-height:1;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 20px rgba(0,255,135,.4);z-index:10}
+.todo-modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);display:flex;align-items:flex-end}
+.todo-modal-overlay.hidden{display:none}
+.todo-modal-card{width:100%;max-width:640px;margin:0 auto;background:#1C1C1E;border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.todo-modal-title{font-size:18px;font-weight:700;color:#FFF}
+.todo-field-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.todo-propose-row{display:flex;gap:8px;margin-top:8px}
+.todo-propose-chip{border:none;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.todo-propose-chip.ok{background:var(--accent);color:#000}
+.todo-propose-chip.no{background:var(--card2);color:var(--text2)}
+.todo-propose-chip:active{opacity:.7}
+
 /* ── Toast ──────────────────────────────────────── */
 .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--card2);color:var(--text);padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.22s;z-index:99;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -410,6 +451,33 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
       <button class="biz-modal-btn primary"   id="bizSaveBtn">Save</button>
     </div>
     <button class="biz-delete-btn" id="bizDeleteBtn" style="display:none">Delete Business</button>
+  </div>
+</div>
+
+<!-- Todo add modal -->
+<div class="todo-modal-overlay hidden" id="todoModal">
+  <div class="todo-modal-card">
+    <div class="todo-modal-title" id="todoModalTitle">Add Task</div>
+    <div>
+      <div class="todo-field-label">Task</div>
+      <input class="biz-field" id="todoTitleInput" placeholder="What needs to be done?" autocapitalize="sentences"/>
+    </div>
+    <div>
+      <div class="todo-field-label">Scope</div>
+      <input class="biz-field" id="todoScopeInput" placeholder="e.g. meatsource (leave blank for current)"/>
+    </div>
+    <div>
+      <div class="todo-field-label">Due date (optional)</div>
+      <input class="biz-field" id="todoDueInput" type="date"/>
+    </div>
+    <div>
+      <div class="todo-field-label">Reminder time (optional)</div>
+      <input class="biz-field" id="todoReminderInput" type="datetime-local"/>
+    </div>
+    <div class="biz-modal-actions">
+      <button class="biz-modal-btn secondary" id="todoCancelBtn">Cancel</button>
+      <button class="biz-modal-btn primary"   id="todoSaveBtn">Save Task</button>
+    </div>
   </div>
 </div>
 
@@ -621,7 +689,15 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
     <div class="review-scroll" id="reviewList"></div>
   </div>
 
-  <!-- Bottom nav — 5 tabs -->
+  <!-- ⑥ Tasks -->
+  <div class="screen hidden" id="screen-tasks">
+    <div class="tasks-hdr">Tasks</div>
+    <div class="tasks-scope-tabs" id="tasksScopeFilter"></div>
+    <div class="todo-list" id="todoList"></div>
+    <button class="todo-fab" id="todoFab">＋</button>
+  </div>
+
+  <!-- Bottom nav — 6 tabs -->
   <nav class="nav">
     <button class="nav-item active" data-tab="chat">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -641,6 +717,13 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
         <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
       </svg>
       <span class="nav-lbl">Businesses</span>
+    </button>
+    <button class="nav-item" data-tab="tasks">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/>
+      </svg>
+      <span class="nav-lbl">Tasks</span>
     </button>
     <button class="nav-item" data-tab="state">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1016,6 +1099,7 @@ function switchTab(tab) {
   $(`screen-${tab}`).classList.remove('hidden');
   if (tab === 'memory') loadMemory();
   if (tab === 'review') loadReview();
+  if (tab === 'tasks') { renderTasksScopeFilter(); loadTodos(); }
 }
 navItems.forEach(n => n.onclick = () => switchTab(n.dataset.tab));
 
@@ -1305,6 +1389,21 @@ async function send() {
                 else badge.remove();
               }
               maybeNotify(chunk);
+              if (chunk.propose_todos && streamWrap) {
+                const pRow = document.createElement('div');
+                pRow.className = 'todo-propose-row';
+                const okBtn = document.createElement('button');
+                okBtn.className = 'todo-propose-chip ok';
+                okBtn.textContent = '＋ Save as Task';
+                const noBtn = document.createElement('button');
+                noBtn.className = 'todo-propose-chip no';
+                noBtn.textContent = 'Dismiss';
+                okBtn.onclick = () => { pRow.remove(); openTodoModal(null, fullText); };
+                noBtn.onclick = () => pRow.remove();
+                pRow.appendChild(okBtn);
+                pRow.appendChild(noBtn);
+                streamWrap.appendChild(pRow);
+              }
             } else if (chunk.type === 'state') {
               if (chunk.session_id) sessDisplay.textContent = chunk.session_id;
               if (chunk.active_model) {
@@ -1348,6 +1447,21 @@ async function send() {
                 else badge.remove();
               }
               maybeNotify(chunk);
+              if (chunk.propose_todos && streamWrap) {
+                const pRow = document.createElement('div');
+                pRow.className = 'todo-propose-row';
+                const okBtn = document.createElement('button');
+                okBtn.className = 'todo-propose-chip ok';
+                okBtn.textContent = '＋ Save as Task';
+                const noBtn = document.createElement('button');
+                noBtn.className = 'todo-propose-chip no';
+                noBtn.textContent = 'Dismiss';
+                okBtn.onclick = () => { pRow.remove(); openTodoModal(null, fullText); };
+                noBtn.onclick = () => pRow.remove();
+                pRow.appendChild(okBtn);
+                pRow.appendChild(noBtn);
+                streamWrap.appendChild(pRow);
+              }
             } else if (chunk.type === 'state') {
               if (chunk.session_id) sessDisplay.textContent = chunk.session_id;
               if (chunk.active_model) {
@@ -1759,6 +1873,205 @@ $('actInspectRoute').onclick = () => {
   toast(`${scope} · ${model} · ${short}`);
 };
 
+// ── Tasks / Todos ─────────────────────────────────────────────
+let todos = [];
+let tasksScopeFilter = 'all';
+
+function todoDueStr(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / 86400000);
+  if (diff < 0)  return { label: 'Overdue', overdue: true };
+  if (diff === 0) return { label: 'Today', overdue: false };
+  if (diff === 1) return { label: 'Tomorrow', overdue: false };
+  return { label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }), overdue: false };
+}
+
+async function loadTodos() {
+  if (!currentUser) return;
+  try {
+    const params = new URLSearchParams({ status: 'open' });
+    if (tasksScopeFilter && tasksScopeFilter !== 'all') params.set('scope', tasksScopeFilter);
+    const res = await authFetch(`${WORKER}/todos?${params}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    todos = data.items || [];
+  } catch { todos = []; }
+  renderTodos();
+  scheduleReminders();
+}
+
+function renderTodos() {
+  const list = $('todoList');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!todos.length) {
+    list.innerHTML = '<div class="todo-empty"><div class="todo-empty-icon">✓</div><span>No open tasks</span></div>';
+    return;
+  }
+  todos.forEach(todo => {
+    const card = document.createElement('div');
+    card.className = 'todo-card';
+
+    const check = document.createElement('div');
+    check.className = 'todo-check';
+
+    const body = document.createElement('div');
+    body.className = 'todo-body';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'todo-title-text';
+    titleEl.textContent = todo.title;
+
+    const meta = document.createElement('div');
+    meta.className = 'todo-meta-row';
+
+    if (todo.scope && todo.scope !== 'global') {
+      const scopeEl = document.createElement('span');
+      scopeEl.className = 'todo-scope-badge';
+      scopeEl.textContent = todo.scope.toUpperCase();
+      meta.appendChild(scopeEl);
+    }
+
+    const dueInfo = todoDueStr(todo.due_date);
+    if (dueInfo) {
+      const dueEl = document.createElement('span');
+      dueEl.className = 'todo-due-label' + (dueInfo.overdue ? ' overdue' : '');
+      dueEl.textContent = '📅 ' + dueInfo.label;
+      meta.appendChild(dueEl);
+    }
+
+    if (todo.reminder_time) {
+      const remEl = document.createElement('span');
+      remEl.className = 'todo-reminder-label';
+      const remD = new Date(todo.reminder_time);
+      remEl.textContent = '🔔 ' + remD.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      meta.appendChild(remEl);
+    }
+
+    body.appendChild(titleEl);
+    if (meta.children.length) body.appendChild(meta);
+    card.appendChild(check);
+    card.appendChild(body);
+
+    card.onclick = () => completeTodoById(todo.id, card, check, titleEl);
+    list.appendChild(card);
+  });
+}
+
+async function completeTodoById(id, card, check, titleEl) {
+  check.classList.add('done');
+  titleEl.classList.add('done');
+  card.style.pointerEvents = 'none';
+  try {
+    const res = await authFetch(`${WORKER}/todo/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) throw new Error();
+    todos = todos.filter(t => t.id !== id);
+    setTimeout(() => { card.style.opacity = '0'; card.style.transition = 'opacity .3s'; setTimeout(() => renderTodos(), 310); }, 400);
+  } catch {
+    check.classList.remove('done');
+    titleEl.classList.remove('done');
+    card.style.pointerEvents = '';
+    toast('Could not complete task');
+  }
+}
+
+function renderTasksScopeFilter() {
+  const bar = $('tasksScopeFilter');
+  if (!bar) return;
+  bar.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'tasks-tab-pill' + (tasksScopeFilter === 'all' ? ' active' : '');
+  allBtn.textContent = 'All';
+  allBtn.onclick = () => { tasksScopeFilter = 'all'; renderTasksScopeFilter(); loadTodos(); };
+  bar.appendChild(allBtn);
+
+  businesses.forEach(biz => {
+    const btn = document.createElement('button');
+    btn.className = 'tasks-tab-pill' + (tasksScopeFilter === biz.scope ? ' active' : '');
+    btn.textContent = biz.name;
+    btn.onclick = () => { tasksScopeFilter = biz.scope; renderTasksScopeFilter(); loadTodos(); };
+    bar.appendChild(btn);
+  });
+
+  if (!businesses.some(b => b.scope === 'global')) {
+    const globBtn = document.createElement('button');
+    globBtn.className = 'tasks-tab-pill' + (tasksScopeFilter === 'global' ? ' active' : '');
+    globBtn.textContent = 'Global';
+    globBtn.onclick = () => { tasksScopeFilter = 'global'; renderTasksScopeFilter(); loadTodos(); };
+    bar.appendChild(globBtn);
+  }
+}
+
+function openTodoModal(todo, suggestedText) {
+  $('todoModalTitle').textContent = todo ? 'Edit Task' : 'Add Task';
+  $('todoTitleInput').value  = todo ? todo.title : '';
+  $('todoScopeInput').value  = todo ? todo.scope : scope !== 'global' ? scope : '';
+  $('todoDueInput').value    = todo?.due_date || '';
+  $('todoReminderInput').value = todo?.reminder_time ? todo.reminder_time.slice(0,16) : '';
+  if (!todo && suggestedText) {
+    const first = suggestedText.split('\n').find(l => l.trim().length > 3) || '';
+    const cleaned = first.replace(/^[•\-*]\s*/, '').trim().slice(0, 80);
+    if (cleaned) $('todoTitleInput').value = cleaned;
+  }
+  $('todoModal').classList.remove('hidden');
+  setTimeout(() => $('todoTitleInput').focus(), 80);
+}
+
+function closeTodoModal() {
+  $('todoModal').classList.add('hidden');
+}
+
+$('todoFab').onclick    = () => openTodoModal(null);
+$('todoCancelBtn').onclick = closeTodoModal;
+$('todoModal').addEventListener('click', e => { if (e.target === $('todoModal')) closeTodoModal(); });
+
+$('todoSaveBtn').onclick = async () => {
+  const title = $('todoTitleInput').value.trim();
+  if (!title) { toast('Task title is required'); return; }
+  const sc        = $('todoScopeInput').value.trim() || scope;
+  const due_date  = $('todoDueInput').value || null;
+  const reminder_time = $('todoReminderInput').value ? new Date($('todoReminderInput').value).toISOString() : null;
+  $('todoSaveBtn').disabled = true;
+  try {
+    const res = await authFetch(`${WORKER}/todo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, scope: sc, due_date, reminder_time }),
+    });
+    if (!res.ok) throw new Error();
+    closeTodoModal();
+    toast('Task saved');
+    await loadTodos();
+  } catch { toast('Could not save task'); }
+  finally { $('todoSaveBtn').disabled = false; }
+};
+
+function scheduleReminders() {
+  const now = Date.now();
+  const window24h = now + 24 * 60 * 60 * 1000;
+  todos.forEach(todo => {
+    if (!todo.reminder_time) return;
+    const remMs = new Date(todo.reminder_time).getTime();
+    if (remMs <= now || remMs > window24h) return;
+    const delay = remMs - now;
+    setTimeout(() => {
+      if (Notification.permission !== 'granted') return;
+      const n = new Notification('GE Task Reminder', {
+        body: todo.title,
+        icon: '/ge-icon-192.png',
+        tag: `ge-todo-${todo.id}`,
+      });
+      n.onclick = () => { window.focus(); switchTab('tasks'); n.close(); };
+    }, delay);
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────
 async function boot() {
   await loadUserConfig();
@@ -1767,6 +2080,7 @@ async function boot() {
   checkHealth();
   await loadScopeSession(scope);
   checkPendingCount();
+  loadTodos();
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
