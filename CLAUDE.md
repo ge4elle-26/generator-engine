@@ -1,5 +1,22 @@
 # Generator Engine — CLAUDE.md
 
+## Build Status
+V2.3 complete as of 2026-04-26.
+All 16 original steps done.
+
+Session 2 additional fixes:
+- Memory pipeline — 8 broken points fixed (user-scoped paths, uid filtering, import proposal queue, approve flow, seed-memory auth, loadRelevantMemory includes user memories)
+- Review tab — Firestore index 400 error fixed (JS filtering instead of field filter)
+- Status strip — dot-only, model name text removed
+- Keyboard scroll — visualViewport direct inline style, no CSS var delay
+- Scope system — migrated from localStorage (ge_businesses, ge_custom_scopes) to Firestore at users/{uid}/config/businesses; GET /user-config and POST /user-config routes added
+- Custom Scopes section — removed from State tab entirely (Businesses tab is source of truth)
+- Businesses tab Chat button — working (applyScope + switchTab, scopeGrid reference removed from applyScope)
+- Light mode theme — complete overhaul: token fixes, 30+ component overrides, applyTheme sets html background
+- Behavior rules — 5 rules added to GE identity system prompt: Focus Lock, No Unsolicited Suggestions, Auto Response Calibration, Escalation Trigger, Time Awareness (client_timestamp + first-message greeting)
+
+Next: Session 3 — To-do list, Reminders, Scheduling.
+
 ## Stack
 - Frontend: Cloudflare Pages (generator-engine.pages.dev)
 - Backend: Cloudflare Worker (ge-ai.grdrys26.workers.dev)

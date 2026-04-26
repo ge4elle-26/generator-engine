@@ -29,13 +29,17 @@ const OPENROUTER_REFERER = 'https://generator-engine.pages.dev';
 const OPENROUTER_TITLE = 'GE Generator Engine';
 
 const MODELS = {
-  DEEP:       'anthropic/claude-opus-4-6',      // strategy
-  DEFAULT:    'anthropic/claude-sonnet-4-6',    // execute mode chat
-  LOGIC:      'openai/gpt-5.4',                  // logic / think mode
-  BACKGROUND: 'google/gemini-2.5-flash',        // summarize / classifier
+  DEEP:       'anthropic/claude-opus-4-7',             // /deep — deep analysis
+  DEFAULT:    'anthropic/claude-sonnet-4-6',           // normal chat, /execute
+  THINK:      'openai/gpt-5.4',                         // /think (sticky), heavy output/formatting
+  BACKGROUND: 'google/gemini-3.1-flash-lite-preview',  // intent classification only — never replies
+  DEBATE_A:   'openai/gpt-5.4',                         // /debate — Perspective A
+  DEBATE_B:   'anthropic/claude-sonnet-4-6',           // /debate — Perspective B
+  DEBATE_C:   'google/gemini-3-flash-preview',         // /debate — Perspective C
 };
 
-const SESSION_MESSAGE_LIMIT = 10;
+const SESSION_MESSAGE_LIMIT = 30;  // fetch enough to always have older messages to compress
+const SLIDING_WINDOW_SIZE   = 12;  // messages sent to model; older ones are compressed
 
 const VALID_INTENTS = new Set([
   'save_memory', 'recall_memory', 'update_task_state',
@@ -277,15 +281,23 @@ function buildSessionId(dateStr) {
 // Think Mode detection
 // ---------------------------------------------------------------------------
 
-function detectThinkMode(message) {
+function detectMode(message) {
   const m = message.trimStart();
-  return m.startsWith('/think') || m.toLowerCase().includes('thinking out loud');
+  if (/^\/think(\s|$)/.test(m))   return 'think';
+  if (/^\/execute(\s|$)/.test(m)) return 'execute';
+  if (/^\/deep(\s|$)/.test(m))    return 'deep';
+  if (/^\/debate(\s|$)/.test(m))  return 'debate';
+  return null;
 }
 
 function stripPrefixes(message) {
   let m = message.trimStart();
-  if (m.startsWith('/deep '))  m = m.slice('/deep '.length);
-  if (m.startsWith('/think ')) m = m.slice('/think '.length);
+  for (const p of ['/think ', '/execute ', '/deep ', '/debate ']) {
+    if (m.startsWith(p)) return m.slice(p.length);
+  }
+  for (const p of ['/think', '/execute', '/deep', '/debate']) {
+    if (m === p) return '';
+  }
   return m;
 }
 
@@ -344,15 +356,14 @@ async function detectScope(apiKey, message, sessionContext = '') {
 // Model router — selects model from intent + mode + explicit preference
 // ---------------------------------------------------------------------------
 
-function routeModel(intent, isThinkMode, modelPreference) {
-  if (modelPreference === 'opus')          return MODELS.DEEP;
-  if (isThinkMode)                         return MODELS.LOGIC;
-  if (intent === 'strategy_logic')         return MODELS.DEEP;
-  if (intent === 'research')               return MODELS.LOGIC;
-  if (intent === 'save_memory'   ||
-      intent === 'recall_memory' ||
-      intent === 'update_task_state')      return MODELS.BACKGROUND;
-  return MODELS.DEFAULT; // writing, fallback, unknown
+function routeModel(mode, intent, modelPreference) {
+  if (mode === 'deep')    return MODELS.DEEP;
+  if (mode === 'think')   return MODELS.THINK;
+  if (mode === 'execute') return MODELS.DEFAULT;
+  if (modelPreference === 'opus')  return MODELS.DEEP;
+  if (modelPreference === 'think') return MODELS.THINK; // sticky — frontend sends this after /think
+  if (intent === 'writing' || intent === 'research') return MODELS.THINK; // heavy output → gpt-5.4
+  return MODELS.DEFAULT;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,47 +418,38 @@ async function callClaudeStream(apiKey, { model, system, messages, maxTokens = 2
   return res;
 }
 
-// Phase 10: Scoped memory — pinned items always first, then recent unpinned
-async function loadScopedMemory(db, scope) {
+// User-scoped memory — queries users/{uid}/memory filtered by scope, pinned first
+// Single equality filter avoids composite index requirement; sort done in JS
+async function loadScopedMemory(db, scope, uid) {
   const now = Date.now();
-  const cached = _memoryCache.get(scope);
+  const cacheKey = `${uid}:${scope}`;
+  const cached = _memoryCache.get(cacheKey);
   if (cached && now - cached.cachedAt < MEMORY_CACHE_TTL) {
-    console.log(`[ge-ai] memory cache HIT scope=${scope} (${cached.items.length} items)`);
+    console.log(`[ge-ai] memory cache HIT uid=${uid} scope=${scope} (${cached.items.length} items)`);
     return cached.items;
   }
 
-  const scopeFilter = {
-    fieldFilter: { field: { fieldPath: 'scope' }, op: 'EQUAL', value: { stringValue: scope } },
-  };
+  const raw = await db.query(`users/${uid}`, 'memory', {
+    filters: [
+      { fieldFilter: { field: { fieldPath: 'scope' }, op: 'EQUAL', value: { stringValue: scope } } },
+    ],
+    limit: 30,
+  });
 
-  const [pinnedItems, unpinnedItems] = await Promise.all([
-    db.query('', 'memory', {
-      filters: [
-        scopeFilter,
-        { fieldFilter: { field: { fieldPath: 'pinned' }, op: 'EQUAL', value: { booleanValue: true } } },
-      ],
-      orderBy: { field: 'createdAt', direction: 'DESCENDING' },
-      limit: 20,
-    }),
-    db.query('', 'memory', {
-      filters: [
-        scopeFilter,
-        { fieldFilter: { field: { fieldPath: 'pinned' }, op: 'EQUAL', value: { booleanValue: false } } },
-      ],
-      orderBy: { field: 'createdAt', direction: 'DESCENDING' },
-      limit: 10,
-    }),
-  ]);
+  raw.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0);
+  });
 
-  const items = [...pinnedItems, ...unpinnedItems];
-  _memoryCache.set(scope, { items, cachedAt: now });
-  console.log(`[ge-ai] memory cache MISS scope=${scope} — ${pinnedItems.length} pinned + ${unpinnedItems.length} unpinned = ${items.length} items`);
-  return items;
+  _memoryCache.set(cacheKey, { items: raw, cachedAt: now });
+  console.log(`[ge-ai] memory cache MISS uid=${uid} scope=${scope} — ${raw.length} items`);
+  return raw;
 }
 
-function invalidateScopeCache(scope) {
-  _memoryCache.delete(scope);
-  console.log(`[ge-ai] memory cache invalidated scope=${scope}`);
+function invalidateScopeCache(cacheKey) {
+  _memoryCache.delete(cacheKey);
+  console.log(`[ge-ai] memory cache invalidated key=${cacheKey}`);
 }
 
 async function withRetry(fn, retries = 1, delayMs = 500) {
@@ -455,6 +457,37 @@ async function withRetry(fn, retries = 1, delayMs = 500) {
     if (retries <= 0) throw err;
     await new Promise(r => setTimeout(r, delayMs));
     return withRetry(fn, retries - 1, delayMs);
+  }
+}
+
+// Returns true if the response text contains action items, decisions, or follow-ups worth notifying about
+function hasActionableContent(text) {
+  if (!text || text.length < 30) return false;
+  const t = text.toLowerCase();
+  return (
+    /\b(action item[s]?|next step[s]?|follow.?up[s]?|to-?do[s]?|deadline)\b/.test(t) ||
+    /\b(you need to|make sure|don't forget|remind(er)?)\b/.test(t)             ||
+    /\b(decision made|we decided|we agreed|confirmed|committed to)\b/.test(t)
+  );
+}
+
+// Compress messages older than the sliding window into a summary injected into the system prompt
+async function compressHistory(apiKey, messages) {
+  if (!messages.length) return null;
+  const transcript = messages
+    .map(m => `${m.role === 'user' ? 'User' : 'GE'}: ${(m.content || '').substring(0, 600)}`)
+    .join('\n');
+  try {
+    const res = await callClaude(apiKey, {
+      model: MODELS.BACKGROUND,
+      system: 'Summarize this conversation history. Capture key decisions made, important facts shared, ongoing tasks, and context needed to continue the conversation naturally. Be specific and factual. Max 300 words.',
+      messages: [{ role: 'user', content: transcript }],
+      maxTokens: 400,
+    });
+    return res.content[0]?.text?.trim() || null;
+  } catch (e) {
+    console.error('[ge-ai] history compression failed:', e.message);
+    return null;
   }
 }
 
@@ -469,22 +502,36 @@ function extractKeywords(text) {
   )];
 }
 
-async function loadRelevantMemory(db, userMessage) {
-  const allActive = await db.query('', 'memory_core', {
-    filters: [{ fieldFilter: { field: { fieldPath: 'status' }, op: 'EQUAL', value: { stringValue: 'active' } } }],
-    limit: 200,
-  });
+async function loadRelevantMemory(db, userMessage, uid) {
+  const [coreItems, userItems] = await Promise.all([
+    db.query('', 'memory_core', {
+      filters: [{ fieldFilter: { field: { fieldPath: 'status' }, op: 'EQUAL', value: { stringValue: 'active' } } }],
+      limit: 200,
+    }).catch(() => []),
+    db.query(`users/${uid}`, 'memory', { limit: 200 }).catch(() => []),
+  ]);
 
   const keywords = extractKeywords(userMessage);
 
-  const rules = allActive.filter(i => i.type === 'rule').slice(0, 5);
-  const prefs = allActive.filter(i => i.type === 'preference').slice(0, 5);
+  // Rules and prefs sourced from memory_core (seeded/admin content) only
+  const rules = coreItems.filter(i => i.type === 'rule').slice(0, 5);
+  const prefs = coreItems.filter(i => i.type === 'preference').slice(0, 5);
 
   const alreadyIncluded = new Set([...rules, ...prefs].map(i => i._id));
 
+  // Keyword matching spans both memory_core and users/{uid}/memory
+  const allItems = [
+    ...coreItems,
+    ...userItems.map(i => ({
+      ...i,
+      type:  i.type  || 'fact',
+      title: i.title || (i.content || '').substring(0, 60),
+    })),
+  ];
+
   let keywordMatches = [];
   if (keywords.length > 0) {
-    keywordMatches = allActive
+    keywordMatches = allItems
       .filter(i => !alreadyIncluded.has(i._id))
       .filter(i => {
         const haystack = `${i.title || ''} ${i.content || ''}`.toLowerCase();
@@ -494,7 +541,7 @@ async function loadRelevantMemory(db, userMessage) {
   }
 
   const selected = [...rules, ...prefs, ...keywordMatches];
-  console.log(`[ge-ai] memory: ${selected.length} items loaded (${rules.length} rules, ${prefs.length} prefs, ${keywordMatches.length} keyword) | keywords: [${keywords.join(', ')}]`);
+  console.log(`[ge-ai] memory: ${selected.length} items (${rules.length} rules, ${prefs.length} prefs, ${keywordMatches.length} keyword) core=${coreItems.length} user=${userItems.length} | keywords: [${keywords.join(', ')}]`);
   return selected;
 }
 
@@ -695,13 +742,6 @@ async function handleSummarizeSession(request, env) {
   return jsonResponse({ session_id, scope: scope || 'global', summary });
 }
 
-// GET /config — returns public Firebase client config (key stored as worker secret)
-async function handleConfig(env) {
-  const apiKey = env.FIREBASE_API_KEY;
-  if (!apiKey) return errorResponse('Config not available', 503);
-  return jsonResponse({ apiKey });
-}
-
 // GET /active-session — returns the last active session for the authenticated user
 async function handleActiveSession(request, env) {
   const { user, authError } = await requireAuth(request, env);
@@ -712,6 +752,13 @@ async function handleActiveSession(request, env) {
 
   if (!data?.session_id) return jsonResponse({ active: false });
   return jsonResponse({ active: true, session_id: data.session_id, scope: data.scope || 'global' });
+}
+
+// GET /config — returns Firebase client API key (stored as worker secret FIREBASE_API_KEY)
+async function handleConfig(env) {
+  const apiKey = env.FIREBASE_API_KEY;
+  if (!apiKey) return errorResponse('Config not available', 503);
+  return jsonResponse({ apiKey });
 }
 
 // GET /health
@@ -739,20 +786,27 @@ async function handleChat(request, env, ctx) {
     return errorResponse('Invalid JSON body');
   }
 
-  const { message, session_id, max_tokens, image, model_preference, conversation_id: incomingConvId } = body;
+  const { message, session_id, max_tokens, image, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp } = body;
   if (!message || typeof message !== 'string')
     return errorResponse('message (string) is required');
 
   if (image && image.length * 0.75 > 4 * 1024 * 1024)
     return errorResponse('Image too large, max 4MB', 400);
 
-  const isThinkMode = detectThinkMode(message);
+  const mode = detectMode(message);
   const cleanMessage = stripPrefixes(message);
   const conversationId = incomingConvId || crypto.randomUUID();
 
   const db = await initFirestore(env);
   const date = getManilaDateString();
   const sessionId = session_id || crypto.randomUUID();
+  const manilaTime = (() => {
+    const base = client_timestamp ? new Date(client_timestamp) : new Date();
+    const display = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }).format(base);
+    const hour = parseInt(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', hour: 'numeric', hour12: false }).format(base), 10);
+    const period = hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening';
+    return { display, period };
+  })();
 
   // Load system config + smart memory + classify intent + detect scope — all in parallel
   // Phase 4.6: Firestore read failures are isolated — degrade gracefully, never abort
@@ -764,33 +818,65 @@ async function handleChat(request, env, ctx) {
     return null;
   };
 
-  const [identity, sysRules, sysPrefs, relevantMemory, recentRaw, intent, scope] = await Promise.all([
+  const [identity, sysRules, sysPrefs, relevantMemory, recentRaw, intent, detectedScope, userData] = await Promise.all([
     db.get('system_config', 'identity').catch(fsReadFail('identity')),
     db.get('system_config', 'rules').catch(fsReadFail('rules')),
     db.get('system_config', 'preferences').catch(fsReadFail('preferences')),
-    withRetry(() => loadRelevantMemory(db, cleanMessage)).catch(e => { console.error('[ge-ai] memory read failed after retry:', e.message); firestoreDegraded = true; return []; }),
+    withRetry(() => loadRelevantMemory(db, cleanMessage, user.uid)).catch(e => { console.error('[ge-ai] memory read failed after retry:', e.message); firestoreDegraded = true; return []; }),
     db.query(`sessions/${sessionId}`, 'messages', {
       orderBy: { field: 'createdAt', direction: 'DESCENDING' },
       limit: SESSION_MESSAGE_LIMIT,
     }).catch(e => { console.error('[ge-ai] session read failed:', e.message); firestoreDegraded = true; return []; }),
     classifyIntent(env.OPENROUTER_API_KEY, cleanMessage),
-    detectScope(env.OPENROUTER_API_KEY, cleanMessage, recentContext),
+    (requestScope && typeof requestScope === 'string')
+      ? Promise.resolve(requestScope)
+      : detectScope(env.OPENROUTER_API_KEY, cleanMessage, recentContext),
+    db.get('users', user.uid).catch(() => null),
   ]);
 
-  let model = routeModel(intent, isThinkMode, model_preference);
+  // Sticky model: reuse active_model if same session, reset on new session (scope change resets sessionId on frontend)
+  const stickyModel = (userData?.session_id === session_id && userData?.active_model) ? userData.active_model : null;
+
+  let model;
+  if (mode === 'debate') {
+    model = MODELS.DEFAULT;
+  } else if (mode) {
+    // Explicit prefix — always overrides sticky
+    model = routeModel(mode, intent, model_preference);
+  } else if (stickyModel && !model_preference) {
+    // No prefix, no body override — reuse last model for this session
+    model = stickyModel;
+  } else {
+    model = routeModel(mode, intent, model_preference);
+  }
   if (image && model === MODELS.BACKGROUND) model = MODELS.DEFAULT;
 
   // Phase 4: Normalize to safe defaults — never let a bad value break the pipeline
   const validatedIntent = VALID_INTENTS.has(intent) ? intent : 'fallback';
-  const validatedScope  = scope  || 'global';
+  const validatedScope  = detectedScope || 'global';
   const validatedModel  = model  || MODELS.DEFAULT;
-  if (validatedIntent !== intent || !scope || !model) {
-    console.warn(`[ge-ai] validation normalised: intent=${intent}→${validatedIntent} scope=${scope||'(missing)'} model=${model||'(missing)'}`);
+
+  // /think and /execute immediately commit active_model — fire-and-forget, does not block response
+  if (mode === 'think' || mode === 'execute') {
+    const earlyPayload = { session_id: sessionId, scope: validatedScope, active_model: validatedModel, updated_at: new Date().toISOString() };
+    db.set('users', user.uid, earlyPayload)
+      .catch(e => console.error('[ge-ai] active_model early write failed:', e.message));
+    db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', earlyPayload)
+      .catch(e => console.error('[ge-ai] scope session early write failed:', e.message));
+  }
+  if (validatedIntent !== intent || !validatedScope || !model) {
+    console.warn(`[ge-ai] validation normalised: intent=${intent}→${validatedIntent} scope=${validatedScope||'(missing)'} model=${model||'(missing)'}`);
   }
 
-  // Phase 10: Load scoped memory (pinned first) and previous session summary in parallel
-  const [scopedMemory, prevSummaryItems] = await Promise.all([
-    withRetry(() => loadScopedMemory(db, validatedScope)).catch(e => {
+  // Sliding window: sort fetched messages ascending, keep last 12, compress the rest
+  const allMsgsSorted  = recentRaw.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const windowMessages = allMsgsSorted.slice(-SLIDING_WINDOW_SIZE).map(({ role, content }) => ({ role, content }));
+  const olderMessages  = allMsgsSorted.slice(0, Math.max(0, allMsgsSorted.length - SLIDING_WINDOW_SIZE));
+  const isFirstMessage = allMsgsSorted.length === 0;
+
+  // Phase 10: Load scoped memory, previous session summary, and compress older history — all in parallel
+  const [scopedMemory, prevSummaryItems, historyCompressionSummary] = await Promise.all([
+    withRetry(() => loadScopedMemory(db, validatedScope, user.uid)).catch(e => {
       console.error('[ge-ai] scoped memory load failed after retry:', e.message);
       return [];
     }),
@@ -799,24 +885,50 @@ async function handleChat(request, env, ctx) {
       orderBy: { field: 'created_at', direction: 'DESCENDING' },
       limit: 1,
     }).catch(() => []),
+    olderMessages.length > 0
+      ? compressHistory(env.OPENROUTER_API_KEY, olderMessages)
+      : Promise.resolve(null),
   ]);
   const prevSummary = prevSummaryItems[0] || null;
 
   // Build system prompt
   const systemSections = [];
 
-  // GE self-awareness — always first block
+  // GE identity — always first, applies to every model and every prefix command
+  systemSections.push(`# GE Identity — Non-Negotiable
+GE is one assistant system, not a model showcase. GE speaks with one voice regardless of which model is active.
+GE is a chief of staff, consultant, and advisor — not a chatbot.
+GE never introduces itself as GPT, Claude, or Gemini. GE never reveals the underlying provider or model name.
+GE never says "as an AI" or any variation of it.
+GE tone is direct, calm, consultant-grade, and context-aware at all times.
+
+## Behavior Rules
+
+FOCUS LOCK: Stay on the current topic. If the conversation begins to drift, immediately flag it: "We're moving away from [topic]. Continue there or stay focused?" — then wait for Gerald's direction before proceeding.
+
+NO UNSOLICITED SUGGESTIONS: Respond only to what was explicitly asked. Do not expand scope, add tangential options, or volunteer unrequested alternatives.
+
+AUTO RESPONSE CALIBRATION:
+- Short factual question → answer in 1–2 sentences, no elaboration.
+- Decision or strategy question → ask "Quick take or full breakdown?" before answering.
+- Complex multi-part question → go deep automatically, no prompt needed.
+
+ESCALATION TRIGGER: If the answer is quick but the topic involves money, legal exposure, or an irreversible action, append exactly: "This has risk — want a deeper look?" Do not elaborate unsolicited.
+
+TIME AWARENESS: ${isFirstMessage ? `This is the first message of this session. Open your reply with "Good ${manilaTime.period} Gerald, it's ${manilaTime.display}." then a line break, then your response. No other preamble.` : `Current Manila time: ${manilaTime.display}. Do not open with a greeting.`}`);
+
+  // GE self-awareness — always second block
   systemSections.push(`# GE — Generator Engine V2.2
-System: Generator Engine V2.2 | Owner: Gerald Reyes | Date (Manila): ${date} | Scope: ${validatedScope}
+System: Generator Engine V2.2 | Owner: Gerald Reyes | Date (Manila): ${date} | Time (Manila): ${manilaTime.display} | Scope: ${validatedScope}
 Phases complete: 1, 2, 3, 3.5, 4, 4.5, 4.6, 5, 6, 6.5, 8, 9, 10
 Infrastructure: Cloudflare Worker + Pages · OpenRouter multi-model · Firebase Auth + Firestore
-Models: claude-opus-4-6 (strategy) · claude-sonnet-4-6 (execute) · gpt-5.4 (logic/think) · gemini-2.5-flash (background)`);
+Models: claude-opus-4-7 (/deep) · claude-sonnet-4-6 (chat/execute) · gpt-5.4 (/think, heavy output) · gemini-3.1-flash-lite-preview (classifier)`);
 
   if (identity?.content) systemSections.push(`# Identity\n${identity.content}`);
   if (sysRules?.content) systemSections.push(`# Rules\n${sysRules.content}`);
   if (sysPrefs?.content) systemSections.push(`# Preferences\n${sysPrefs.content}`);
 
-  if (isThinkMode) {
+  if (mode === 'think') {
     systemSections.push(`# Think Mode — Socratic Reasoning Partner
 You are in Think Mode. Your job is NOT to give answers — it is to help Gerald think.
 1. Ask 1–3 focused clarifying questions that expose hidden assumptions or trade-offs
@@ -860,12 +972,12 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
     systemSections.push(`# Previous Session Context [${validatedScope}]\n${prevSummary.summary}`);
   }
 
-  systemSections.push(`# Session\nID: ${sessionId} | Conv: ${conversationId} | Date (Manila): ${date} | Model: ${validatedModel} | Intent: ${validatedIntent} | Scope: ${validatedScope}${isThinkMode ? ' | Mode: think' : ''}`);
-  const systemPrompt = systemSections.join('\n\n');
+  if (historyCompressionSummary) {
+    systemSections.push(`# Compressed Conversation History (${olderMessages.length} older messages)\n${historyCompressionSummary}`);
+  }
 
-  const recentMessages = recentRaw
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-    .map(({ role, content }) => ({ role, content }));
+  systemSections.push(`# Session\nID: ${sessionId} | Conv: ${conversationId} | Date (Manila): ${date} | Model: ${validatedModel} | Intent: ${validatedIntent} | Scope: ${validatedScope}${mode ? ` | Mode: ${mode}` : ''}`);
+  const systemPrompt = systemSections.join('\n\n');
 
   // Build user content (text or text+image)
   let userContent;
@@ -882,7 +994,63 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
     userContent = cleanMessage;
   }
 
-  const messagesForClaude = [...recentMessages, { role: 'user', content: userContent }];
+  const messagesForClaude = [...windowMessages, { role: 'user', content: userContent }];
+
+  // /debate — parallel calls to 3 models, streamed as labelled perspectives
+  if (mode === 'debate') {
+    const debateEnc = new TextEncoder();
+    const { readable: debR, writable: debW } = new TransformStream();
+    const debWriter = debW.getWriter();
+
+    ctx.waitUntil((async () => {
+      try {
+        const [resA, resB, resC] = await Promise.allSettled([
+          callClaude(env.OPENROUTER_API_KEY, { model: MODELS.DEBATE_A, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 1024 }),
+          callClaude(env.OPENROUTER_API_KEY, { model: MODELS.DEBATE_B, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 1024 }),
+          callClaude(env.OPENROUTER_API_KEY, { model: MODELS.DEBATE_C, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 1024 }),
+        ]);
+        const tA = resA.status === 'fulfilled' ? resA.value.content[0].text : '(unavailable)';
+        const tB = resB.status === 'fulfilled' ? resB.value.content[0].text : '(unavailable)';
+        const tC = resC.status === 'fulfilled' ? resC.value.content[0].text : '(unavailable)';
+        const combined = `**Perspective A — GPT-5.4**\n\n${tA}\n\n---\n\n**Perspective B — Claude Sonnet**\n\n${tB}\n\n---\n\n**Perspective C — Gemini**\n\n${tC}`;
+        const debModel = `debate:${MODELS.DEBATE_A}+${MODELS.DEBATE_B}+${MODELS.DEBATE_C}`;
+        await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({ type: 'text', content: combined })}\n\n`));
+        await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({
+          type: 'done', message: combined, intent: validatedIntent, model: debModel,
+          scope: validatedScope, memory_loaded: relevantMemory.length, session_id: sessionId,
+          status: 'ok', runtime_degraded: firestoreDegraded, conversation_id: conversationId,
+          think_mode: false, memory_items: relevantMemory.length,
+          notify: hasActionableContent(combined),
+        })}\n\n`));
+        await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({
+          type: 'state', active_model: debModel, scope: validatedScope,
+          session_id: sessionId, timestamp: new Date().toISOString(),
+        })}\n\n`));
+        const now = new Date().toISOString();
+        await Promise.all([
+          db.add(`sessions/${sessionId}/messages`, { role: 'user', content: cleanMessage, createdAt: now, sessionId, conversationId, model: 'debate', intent: validatedIntent, scope: validatedScope, think_mode: false, has_image: false, user_id: user.uid }),
+          db.add(`sessions/${sessionId}/messages`, { role: 'assistant', content: combined, createdAt: new Date().toISOString(), sessionId, conversationId, model: 'debate', intent: validatedIntent, scope: validatedScope, think_mode: false, user_id: user.uid }),
+        ]).catch(e => console.error('[ge-ai] debate Firestore write failed:', e.message));
+        const debateSessionPayload = { session_id: sessionId, scope: validatedScope, active_model: stickyModel || null, updated_at: new Date().toISOString() };
+        await db.set('users', user.uid, debateSessionPayload)
+          .catch(e => console.error('[ge-ai] debate user session save failed:', e.message));
+        await db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', debateSessionPayload)
+          .catch(e => console.error('[ge-ai] debate scope session save failed:', e.message));
+      } catch (e) {
+        console.error('[ge-ai] debate mode failed:', e.message);
+        const errMsg = 'Debate mode failed — please try again.';
+        await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({ type: 'text', content: errMsg })}\n\n`));
+        await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({ type: 'done', message: errMsg, status: 'error', session_id: sessionId, intent: validatedIntent, model: 'debate', scope: validatedScope, memory_loaded: 0, runtime_degraded: true, conversation_id: conversationId, think_mode: false, memory_items: 0 })}\n\n`));
+      } finally {
+        await debWriter.close();
+      }
+    })());
+
+    return new Response(debR, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Transfer-Encoding': 'chunked', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' },
+    });
+  }
 
   // Phase 4.6: OpenRouter fetch with retry + structured error handling
   const orOpts = { model: validatedModel, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 2048 };
@@ -967,10 +1135,17 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         session_id:       sessionId,
         status:           responseStatus,
         runtime_degraded: firestoreDegraded,
-        // backward-compat
         conversation_id:  conversationId,
-        think_mode:       isThinkMode,
+        think_mode:       mode === 'think',
         memory_items:     relevantMemory.length,
+        notify:           responseStatus === 'ok' && hasActionableContent(fullText),
+      })}\n\n`));
+      await writer.write(enc.encode(`data: ${JSON.stringify({
+        type:         'state',
+        active_model: validatedModel,
+        scope:        validatedScope,
+        session_id:   sessionId,
+        timestamp:    new Date().toISOString(),
       })}\n\n`));
       await writer.close();
     }
@@ -985,7 +1160,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
           content: image ? `[📷 image attached] ${cleanMessage}` : cleanMessage,
           createdAt: now, sessionId, conversationId,
           model: validatedModel, intent: validatedIntent, scope: validatedScope,
-          think_mode: isThinkMode, has_image: !!image,
+          think_mode: mode === 'think', has_image: !!image,
           user_id: user.uid,
           ...(imageSmall ? { image_data: image } : {}),
         }),
@@ -993,22 +1168,25 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
           role: 'assistant', content: fullText,
           createdAt: new Date().toISOString(), sessionId, conversationId,
           model: validatedModel, intent: validatedIntent, scope: validatedScope,
-          think_mode: isThinkMode, user_id: user.uid,
+          think_mode: mode === 'think', user_id: user.uid,
         }),
       ]);
     } catch (writeErr) {
       console.error('[ge-ai] Firestore write failed (non-blocking):', writeErr.message);
     }
 
-    // Phase 10: Cross-device continuity — save active session under users/{uid}
+    // Phase 10: Cross-device continuity — save active session + sticky model under users/{uid}
+    const sessionPayload = { session_id: sessionId, scope: validatedScope, active_model: validatedModel, updated_at: new Date().toISOString() };
     try {
-      await db.set('users', user.uid, {
-        session_id: sessionId,
-        scope: validatedScope,
-        updated_at: new Date().toISOString(),
-      });
+      await db.set('users', user.uid, sessionPayload);
     } catch (e) {
       console.error('[ge-ai] user session save failed:', e.message);
+    }
+    // Per-scope session record — cross-device scope chatroom continuity
+    try {
+      await db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', sessionPayload);
+    } catch (e) {
+      console.error('[ge-ai] scope session save failed:', e.message);
     }
 
     // Phase 6: Runtime log — fire and forget, never blocks response
@@ -1018,7 +1196,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         session_id:       sessionId,
         user_message:     cleanMessage.substring(0, 200),
         detected_intent:  validatedIntent,
-        detected_mode:    isThinkMode ? 'think' : 'execute',
+        detected_mode:    mode || 'execute',
         selected_model:   validatedModel,
         scope:            validatedScope,
         memory_loaded:    relevantMemory.length,
@@ -1046,22 +1224,22 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   });
 }
 
-// GET /recall — returns all items from `memory` collection (ordered by createdAt desc)
+// GET /recall — returns memory items for the authenticated user, optionally filtered by scope
 async function handleRecallMemory(request, env) {
-  const { authError } = await requireAuth(request, env);
+  const { user, authError } = await requireAuth(request, env);
   if (authError) return authError;
 
   const url = new URL(request.url);
   const limitParam = parseInt(url.searchParams.get('limit')) || 50;
   const limit = Math.min(limitParam, 200);
+  const scopeParam = url.searchParams.get('scope') || null;
 
   const db = await initFirestore(env);
-  const items = await db.query('', 'memory', {
-    orderBy: { field: 'createdAt', direction: 'DESCENDING' },
-    limit,
-  });
+  const raw = await db.query(`users/${user.uid}`, 'memory', { limit: 200 });
+  const filtered = scopeParam ? raw.filter(i => i.scope === scopeParam) : raw;
+  filtered.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
 
-  return jsonResponse({ count: items.length, items });
+  return jsonResponse({ count: filtered.length, items: filtered.slice(0, limit) });
 }
 
 // POST /recall
@@ -1172,9 +1350,9 @@ ${content}`;
   }
 }
 
-// POST /import
+// POST /import — AI-extracts items and queues them as pending proposals in users/{uid}/memory_proposals
 async function handleImport(request, env) {
-  const { authError } = await requireAuth(request, env);
+  const { user, authError } = await requireAuth(request, env);
   if (authError) return authError;
 
   let body;
@@ -1184,9 +1362,7 @@ async function handleImport(request, env) {
     return errorResponse('Invalid JSON body');
   }
 
-  const { collection, documents } = body;
-  if (!collection || typeof collection !== 'string')
-    return errorResponse('collection (string) is required');
+  const { documents } = body;
   if (!Array.isArray(documents) || documents.length === 0)
     return errorResponse('documents (non-empty array) is required');
 
@@ -1209,13 +1385,14 @@ async function handleImport(request, env) {
           const items = await extractMemoryItems(env.OPENROUTER_API_KEY, chunks[i], docSource);
           console.log(`[ge-ai] chunk ${i + 1}/${chunks.length}: extracted ${items.length} items`);
           for (const item of items) {
-            await db.add('memory_core', {
+            await db.add(`users/${user.uid}/memory_proposals`, {
               ...item,
-              source: docSource,
-              status: 'active',
+              source:     docSource,
+              status:     'pending',
               imported_at: importedAt,
-              batch_id: batchId,
+              batch_id:   batchId,
               session_id: docItem.session_id || null,
+              user_id:    user.uid,
             });
             allItems.push(item);
           }
@@ -1225,17 +1402,22 @@ async function handleImport(request, env) {
         }
       }
     } else {
-      const { id, ...fields } = docItem;
-      const payload = { ...fields, imported_at: importedAt, batch_id: batchId, status: 'active' };
-      id ? await db.set(collection, String(id), payload) : await db.add(collection, payload);
+      const { ...fields } = docItem;
+      await db.add(`users/${user.uid}/memory_proposals`, {
+        ...fields,
+        imported_at: importedAt,
+        batch_id:    batchId,
+        status:      'pending',
+        user_id:     user.uid,
+      });
       allItems.push({ type: 'fact', title: 'Raw import', content: '', business: null, confidence: 1 });
     }
   }
 
-  return jsonResponse({ imported: allItems.length, chunks_processed: totalChunks, batch_id: batchId, items: allItems });
+  return jsonResponse({ proposed: allItems.length, chunks_processed: totalChunks, batch_id: batchId, items: allItems });
 }
 
-// POST /save  — Phase 5: writes to memory_updates as a pending proposal
+// POST /save — writes directly to users/{uid}/memory (no review step for explicit user saves)
 async function handleSave(request, env) {
   const { user, authError } = await requireAuth(request, env);
   if (authError) return authError;
@@ -1253,20 +1435,21 @@ async function handleSave(request, env) {
 
   const db = await initFirestore(env);
   const now = new Date().toISOString();
+  const resolvedScope = scope || 'global';
 
-  const newId = await db.add('memory_updates', {
+  const newId = await db.add(`users/${user.uid}/memory`, {
     content,
-    scope:       scope || 'global',
-    tags:        Array.isArray(tags) ? tags : [],
-    pinned:      pinned === true,
-    session_id:  session_id || null,
-    status:      'pending',
-    confidence:  0.8,
-    proposed_at: now,
-    user_id:     user.uid,
+    scope:      resolvedScope,
+    tags:       Array.isArray(tags) ? tags : [],
+    pinned:     pinned === true,
+    session_id: session_id || null,
+    type:       'fact',
+    created_at: now,
+    user_id:    user.uid,
   });
 
-  return jsonResponse({ id: newId, collection: 'memory_updates', action: 'proposed' });
+  invalidateScopeCache(`${user.uid}:${resolvedScope}`);
+  return jsonResponse({ id: newId, collection: `users/${user.uid}/memory`, action: 'saved' });
 }
 
 // GET /admin/memory
@@ -1443,6 +1626,8 @@ async function handleAdminSeed(request, env) {
 
 // POST /admin/seed-memory
 async function handleAdminSeedMemory(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
   const db = await initFirestore(env);
   const now = new Date().toISOString();
 
@@ -1485,13 +1670,15 @@ async function handleAdminSeedMemory(request, env) {
 
   const results = [];
   for (const s of seeds) {
-    const id = await db.add('memory', {
-      content: s.content,
-      scope: s.scope,
-      tags: [],
-      pinned: true,
+    const id = await db.add(`users/${user.uid}/memory`, {
+      content:    s.content,
+      scope:      s.scope,
+      tags:       [],
+      pinned:     true,
       session_id: 'seed',
-      createdAt: now,
+      type:       'fact',
+      created_at: now,
+      user_id:    user.uid,
     });
     results.push({ id, scope: s.scope });
   }
@@ -1499,33 +1686,31 @@ async function handleAdminSeedMemory(request, env) {
   return jsonResponse({ seeded: results.length, results, timestamp: now });
 }
 
-// GET /review — returns all pending memory_updates proposals
+// GET /review — returns pending import proposals for the authenticated user
+// No Firestore filter: fetches all docs from users/{uid}/memory_proposals and filters in JS.
+// Avoids 400 errors when Firestore auto-indexes don't exist for new/empty collections.
 async function handleReview(request, env) {
-  const { authError } = await requireAuth(request, env);
+  const { user, authError } = await requireAuth(request, env);
   if (authError) return authError;
 
   const url = new URL(request.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit')) || 100, 200);
 
   const db = await initFirestore(env);
-  const items = await db.query('', 'memory_updates', {
-    filters: [{
-      fieldFilter: {
-        field: { fieldPath: 'status' },
-        op: 'EQUAL',
-        value: { stringValue: 'pending' },
-      },
-    }],
-    orderBy: { field: 'proposed_at', direction: 'DESCENDING' },
-    limit,
-  });
+  const all = await db.query(`users/${user.uid}`, 'memory_proposals', { limit: 500 })
+    .catch(() => []);
+
+  const items = all
+    .filter(i => i.status === 'pending' && i.user_id === user.uid)
+    .sort((a, b) => new Date(b.imported_at || b.proposed_at || 0) - new Date(a.imported_at || a.proposed_at || 0))
+    .slice(0, limit);
 
   return jsonResponse({ count: items.length, items });
 }
 
-// POST /admin/approve-memory — moves an approved proposal into the stable memory collection
+// POST /admin/approve-memory — approves an import proposal and writes to users/{uid}/memory
 async function handleApproveMemory(request, env) {
-  const { authError } = await requireAuth(request, env);
+  const { user, authError } = await requireAuth(request, env);
   if (authError) return authError;
 
   let body;
@@ -1536,32 +1721,87 @@ async function handleApproveMemory(request, env) {
 
   const db = await initFirestore(env);
 
-  const proposal = await db.get('memory_updates', id);
+  const proposal = await db.get(`users/${user.uid}/memory_proposals`, id);
   if (!proposal) return errorResponse('Proposal not found', 404);
   if (proposal.status !== 'pending') return errorResponse(`Proposal is already ${proposal.status}`, 409);
 
   const now = new Date().toISOString();
 
-  // Write to stable memory
-  const memId = await db.add('memory', {
-    content:     proposal.content,
-    scope:       proposal.scope   || 'global',
-    tags:        proposal.tags    || [],
-    pinned:      proposal.pinned  || false,
-    session_id:  proposal.session_id || null,
-    confidence:  proposal.confidence || 0.8,
-    source_id:   id,
-    createdAt:   now,
-    user_id:     proposal.user_id || null,
+  const memId = await db.add(`users/${user.uid}/memory`, {
+    content:    proposal.content,
+    scope:      proposal.scope    || 'global',
+    tags:       proposal.tags     || [],
+    pinned:     proposal.pinned   || false,
+    session_id: proposal.session_id || null,
+    type:       proposal.type     || 'fact',
+    title:      proposal.title    || null,
+    confidence: proposal.confidence || 0.8,
+    source_id:  id,
+    created_at: now,
+    user_id:    user.uid,
   });
 
-  // Mark proposal as approved
-  await db.set('memory_updates', id, { ...proposal, status: 'approved', approved_at: now, memory_id: memId });
+  await db.set(`users/${user.uid}/memory_proposals`, id, { ...proposal, status: 'approved', approved_at: now, memory_id: memId });
 
-  // Phase 9: Invalidate scope cache so next request loads fresh memory
-  invalidateScopeCache(proposal.scope || 'global');
+  const cacheKey = `${user.uid}:${proposal.scope || 'global'}`;
+  invalidateScopeCache(cacheKey);
 
-  return jsonResponse({ id: memId, source_id: id, collection: 'memory', action: 'approved' });
+  return jsonResponse({ id: memId, source_id: id, collection: `users/${user.uid}/memory`, action: 'approved' });
+}
+
+// GET /user-config — returns user config (businesses list, custom scopes)
+async function handleGetUserConfig(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  const db = await initFirestore(env);
+  const data = await db.get(`users/${user.uid}/config`, 'businesses').catch(() => null);
+  if (!data) {
+    return jsonResponse({
+      businesses: [
+        { id: '1', name: 'MEATSOURCE',       description: 'Premium frozen meat delivery', scope: 'meatsource', color: '#FF453A' },
+        { id: '2', name: 'Gabay Essentials', description: 'Affiliate marketing system',   scope: 'gabay',      color: '#00FF87' },
+        { id: '3', name: 'Exis OS',          description: 'Personal OS project',          scope: 'exis-os',    color: '#0A84FF' },
+      ],
+      custom_scopes: [],
+    });
+  }
+  return jsonResponse({
+    businesses:    data.businesses    || [],
+    custom_scopes: data.custom_scopes || [],
+  });
+}
+
+// POST /user-config — saves user config (businesses list, custom scopes)
+async function handleSetUserConfig(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+  const { businesses, custom_scopes } = body;
+  if (!Array.isArray(businesses)) return errorResponse('businesses must be an array');
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+  await db.set(`users/${user.uid}/config`, 'businesses', {
+    businesses,
+    custom_scopes: Array.isArray(custom_scopes) ? custom_scopes : [],
+    updated_at: now,
+    user_id: user.uid,
+  });
+  return jsonResponse({ ok: true, updated_at: now });
+}
+
+// GET /scope-session?scope=<scope> — returns the active session for a specific scope
+async function handleScopeSession(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+
+  const url = new URL(request.url);
+  const scope = url.searchParams.get('scope') || 'global';
+  const db = await initFirestore(env);
+  const data = await db.get(`users/${user.uid}/scopes/${scope}`, 'session').catch(() => null);
+
+  if (!data?.session_id) return jsonResponse({ active: false, scope });
+  return jsonResponse({ active: true, scope, session_id: data.session_id, active_model: data.active_model || null });
 }
 
 // ---------------------------------------------------------------------------
@@ -1579,6 +1819,7 @@ export default {
       if (pathname === '/health'            && method === 'GET')  return await handleHealth();
       if (pathname === '/config'            && method === 'GET')  return await handleConfig(env);
       if (pathname === '/active-session'    && method === 'GET')  return await handleActiveSession(request, env);
+      if (pathname === '/scope-session'     && method === 'GET')  return await handleScopeSession(request, env);
       if (pathname === '/summarize-session' && method === 'POST') return await handleSummarizeSession(request, env);
       if (pathname === '/chat'              && method === 'POST') return await handleChat(request, env, ctx);
       if (pathname === '/recall' && method === 'GET')  return await handleRecallMemory(request, env);
@@ -1589,6 +1830,8 @@ export default {
       if (pathname === '/admin/approve-memory' && method === 'POST') return await handleApproveMemory(request, env);
       if (pathname === '/admin/seed' && method === 'POST') return await handleAdminSeed(request, env);
       if (pathname === '/admin/seed-memory' && method === 'POST') return await handleAdminSeedMemory(request, env);
+      if (pathname === '/user-config'  && method === 'GET')  return await handleGetUserConfig(request, env);
+      if (pathname === '/user-config'  && method === 'POST') return await handleSetUserConfig(request, env);
       if (pathname === '/admin/memory' && method === 'GET') return await handleAdminMemory(request, env);
 
       return errorResponse('Not found', 404);

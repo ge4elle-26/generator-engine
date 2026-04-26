@@ -1,4 +1,4 @@
-<!-- v=20260424-0900 -->
+<!-- v=20260425-2000 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +7,11 @@
 <meta name="theme-color" content="#000000"/>
 <title>GE</title>
 <link rel="manifest" href="/manifest.json"/>
+<link rel="icon" type="image/png" href="/ge-icon-192.png"/>
 <link rel="apple-touch-icon" href="/ge-icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
 <meta name="apple-mobile-web-app-title" content="GE"/>
@@ -16,24 +20,63 @@
 :root{
   --bg:#000000;--card:#1C1C1E;--card2:#1C1C1E;
   --text:#FFFFFF;--text2:#8E8E93;--accent:#00FF87;
-  --div:rgba(255,255,255,0.10);--r:16px;
-  --user-bg:#1C1C1E;--send-bg:#FFFFFF;--send-fg:#000000;
+  --div:rgba(255,255,255,0.10);--r:20px;
+  --user-bg:#252528;--send-bg:#FFFFFF;--send-fg:#000000;
 }
 body.light{
-  --bg:#F2F2F7;--card:#FFFFFF;--card2:#E5E5EA;
-  --text:#000000;--text2:#6C6C70;--accent:#00C46A;
+  --bg:#FFFFFF;--card:#F2F2F7;--card2:#E5E5EA;
+  --text:#1C1C1E;--text2:#6C6C70;
   --div:rgba(0,0,0,0.08);--user-bg:#E5E5EA;
-  --send-bg:#000000;--send-fg:#FFFFFF;
+  --send-bg:#1C1C1E;--send-fg:#FFFFFF;
 }
+/* ── Light mode component overrides ──────────────── */
+body.light{background:#FFFFFF}
+body.light .hdr{background:#FFFFFF}
+body.light .scope-trigger{background:#F2F2F7;color:#1C1C1E}
+body.light .scope-dropdown{background:#FFFFFF;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+body.light .scope-option{color:#1C1C1E}
+body.light .scope-option:hover,body.light .scope-option:active{background:rgba(0,0,0,.06)}
+body.light .chat-strip{background:#F2F2F7}
+body.light .chat-act-btn{border-color:rgba(0,0,0,.10)}
+body.light .chat-act-btn:active{background:rgba(0,0,0,.05)}
+body.light .input-area{background:#FFFFFF}
+body.light .input-row{background:#F2F2F7;border-color:rgba(0,0,0,.08);box-shadow:0 2px 20px rgba(0,0,0,.06)}
+body.light .nav{background:#FFFFFF}
+body.light .ai-bbl code{background:rgba(0,0,0,.06)}
+body.light .ai-bbl pre{background:#F2F2F7}
+body.light .ai-bbl pre code{color:#1C1C1E}
+body.light .ai-bbl th,body.light .ai-bbl td{border-color:rgba(0,0,0,.12)}
+body.light .ai-bbl th{background:rgba(0,0,0,.04)}
+body.light .ai-bbl tr:nth-child(even) td{background:rgba(0,0,0,.02)}
+body.light .biz-modal-overlay{background:rgba(0,0,0,.45)}
+body.light .biz-modal-card{background:#FFFFFF}
+body.light .biz-modal-title{color:#1C1C1E}
+body.light .biz-field{background:#F2F2F7;border-color:rgba(0,0,0,.10);color:#1C1C1E}
+body.light .biz-field::placeholder{color:#6C6C70}
+body.light .biz-modal-btn.secondary{background:#E5E5EA;color:#6C6C70}
+body.light .drawer{background:#FFFFFF}
+body.light .drawer-hdr{color:#1C1C1E;border-bottom-color:rgba(0,0,0,.10)}
+body.light .drawer-section-lbl{color:#6C6C70}
+body.light .drawer-item{color:#1C1C1E}
+body.light .drawer-item:hover,body.light .drawer-item:active{background:rgba(0,0,0,.05)}
+body.light .drawer-sep{background:rgba(0,0,0,.10)}
+body.light #login-screen{background:#FFFFFF}
+body.light .login-card{background:#F2F2F7}
+body.light .login-logo{color:#1C1C1E}
+body.light .login-field{background:#FFFFFF;border-color:rgba(0,0,0,.10);color:#1C1C1E}
+body.light .login-btn.secondary{background:#E5E5EA;color:#6C6C70}
+body.light .login-forgot{color:#6C6C70}
+body.light .login-forgot:hover{color:#1C1C1E}
 
 /* ── Reset ──────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,sans-serif;
-  font-size:16px;-webkit-font-smoothing:antialiased}
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
 /* ── Shell ──────────────────────────────────────── */
-.app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:640px;margin:0 auto}
+/* height stack: 100vh fallback → 100dvh (dynamic, keyboard-aware on iOS 16+/modern Android) → --vvh (JS-set via visualViewport, works on all iOS) */
+.app{position:fixed;inset:0;display:flex;flex-direction:column;max-width:640px;margin:0 auto;height:100vh;height:100dvh}
 
 /* ── Header ─────────────────────────────────────── */
 .hdr{
@@ -85,7 +128,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 /* ── Thread ─────────────────────────────────────── */
 .thread{
   flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
-  padding:8px 16px 12px;display:flex;flex-direction:column;gap:2px;
+  padding:18px 16px 8px;display:flex;flex-direction:column;gap:0;
   -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
 }
 .thread::-webkit-scrollbar{width:3px}
@@ -93,12 +136,37 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .thread::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
 
 /* ── Messages ───────────────────────────────────── */
-.msg{display:flex;flex-direction:column;margin:4px 0;animation:fadein .15s ease-out}
+.msg{display:flex;flex-direction:column;margin:10px 0;animation:fadein .18s ease-out}
 .msg.user{align-items:flex-end}
 .msg.assistant{align-items:flex-start}
-.bubble{max-width:80%;padding:11px 14px;border-radius:var(--r);font-size:15px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.bubble.user-bbl{background:var(--user-bg);color:var(--text);border-bottom-right-radius:4px}
-.bubble.ai-bbl{background:transparent;color:var(--text);max-width:100%;padding:2px 0}
+.bubble{max-width:82%;padding:12px 16px;border-radius:var(--r);font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.bubble.user-bbl{background:var(--user-bg);color:var(--text);border-radius:20px 20px 6px 20px;padding:13px 17px;font-weight:400;letter-spacing:-.01em}
+.bubble.ai-bbl{background:transparent;color:var(--text);max-width:100%;padding:4px 0;white-space:normal}
+
+/* ── Markdown inside AI bubbles ─────────────────── */
+.ai-bbl p{margin:.45em 0;line-height:1.55}
+.ai-bbl p:first-child{margin-top:0}
+.ai-bbl p:last-child{margin-bottom:0}
+.ai-bbl h1,.ai-bbl h2,.ai-bbl h3,.ai-bbl h4{font-weight:700;line-height:1.3;margin:.8em 0 .35em}
+.ai-bbl h1{font-size:1.15em}
+.ai-bbl h2{font-size:1.05em}
+.ai-bbl h3,.ai-bbl h4{font-size:1em}
+.ai-bbl ul,.ai-bbl ol{padding-left:1.5em;margin:.4em 0}
+.ai-bbl li{margin:.2em 0;line-height:1.5}
+.ai-bbl li>ul,.ai-bbl li>ol{margin:.1em 0}
+.ai-bbl code{background:rgba(255,255,255,.1);border-radius:4px;padding:1px 6px;font-family:'SF Mono',Menlo,monospace;font-size:.82em}
+.ai-bbl pre{background:#111;border-radius:10px;padding:12px 14px;overflow-x:auto;margin:.6em 0}
+.ai-bbl pre code{background:none;padding:0;font-size:.82em;color:#e0e0e0}
+.ai-bbl table{border-collapse:collapse;width:100%;margin:.6em 0;font-size:.9em;display:block;overflow-x:auto}
+.ai-bbl th,.ai-bbl td{border:1px solid rgba(255,255,255,.15);padding:7px 11px;text-align:left;white-space:nowrap}
+.ai-bbl th{background:rgba(255,255,255,.07);font-weight:700}
+.ai-bbl tr:nth-child(even) td{background:rgba(255,255,255,.03)}
+.ai-bbl blockquote{border-left:3px solid var(--accent);padding:.2em 0 .2em 12px;margin:.5em 0;opacity:.85}
+.ai-bbl strong{font-weight:700}
+.ai-bbl em{font-style:italic}
+.ai-bbl hr{border:none;border-top:1px solid var(--div);margin:.8em 0}
+.ai-bbl a{color:var(--accent);text-decoration:none}
+.ai-bbl a:hover{text-decoration:underline}
 .ai-bbl.streaming::after{content:'▋';margin-left:2px;animation:blink .7s step-end infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
@@ -112,6 +180,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .msg-meta{display:flex;gap:8px;align-items:center;margin-top:5px;flex-wrap:wrap}
 .scope-pill-msg{font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em}
 .model-label{font-size:11px;color:var(--text2)}
+.model-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#3A3A3C}
 
 /* ── Save chip ──────────────────────────────────── */
 .save-row{display:flex;gap:8px;margin-top:8px}
@@ -128,13 +197,13 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 @keyframes tdot{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
 
 /* ── Input ──────────────────────────────────────── */
-.input-area{flex-shrink:0;background:#000000;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));border-top:.5px solid var(--div)}
+.input-area{flex-shrink:0;background:#000000;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
 .img-bar{display:none;align-items:center;gap:10px;margin-bottom:8px}
 .img-bar.show{display:flex}
 .img-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0}
 .img-fname{flex:1;font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .img-rm{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
-.input-row{display:flex;align-items:flex-end;gap:8px;background:var(--card);border-radius:var(--r);padding:10px 8px 10px 14px}
+.input-row{display:flex;align-items:flex-end;gap:8px;background:#1C1C1E;border-radius:26px;padding:10px 8px 10px 18px;box-shadow:0 2px 20px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07)}
 textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px}
 textarea.composer::placeholder{color:var(--text2)}
 .attach-btn{flex-shrink:0;background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:grid;place-items:center}
@@ -238,10 +307,6 @@ textarea.composer::placeholder{color:var(--text2)}
 .tog input:checked~.tog-track{background:var(--accent)}
 .tog-thumb{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#FFF;transition:transform .2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .tog input:checked~.tog-thumb{transform:translateX(20px)}
-.scope-grid{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px 14px}
-.s-scope{padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;background:var(--card2);color:var(--text2);border:none;cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
-.s-scope.on{background:var(--accent);color:#000}
-.s-scope-add{color:var(--accent);font-size:18px;padding:6px 12px}
 .s-logout-btn{background:var(--card2);color:#FF453A;border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 
 /* ── Review screen ──────────────────────────────── */
@@ -277,7 +342,37 @@ textarea.composer::placeholder{color:var(--text2)}
 .login-btn:disabled{opacity:.45;cursor:default}
 .login-forgot{background:none;border:none;color:#8E8E93;font:inherit;font-size:13px;cursor:pointer;text-align:center;padding:2px;text-decoration:underline;text-underline-offset:3px}
 .login-forgot:hover{color:#FFF}
+
+/* ── Menu button ─────────────────────────────────── */
+.menu-btn{width:36px;height:36px;border-radius:50%;border:none;background:none;color:var(--text2);cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+
+/* ── Drawer ──────────────────────────────────────── */
+.drawer-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.65);opacity:0;pointer-events:none;transition:opacity .25s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:#1C1C1E;z-index:401;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);overflow-y:auto}
+.drawer.open{transform:translateX(0)}
+.drawer-hdr{flex-shrink:0;padding:20px 20px 16px;font-size:20px;font-weight:800;letter-spacing:-.4px;color:#FFF;display:flex;align-items:center;gap:8px;border-bottom:.5px solid rgba(255,255,255,.10)}
+.drawer-logo-dot{width:8px;height:8px;border-radius:50%;background:#00FF87;flex-shrink:0}
+.drawer-section-lbl{padding:12px 20px 4px;font-size:11px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:.08em}
+.drawer-item{display:flex;align-items:center;gap:14px;padding:14px 20px;border:none;background:none;color:#FFF;font:inherit;font-size:15px;font-weight:600;cursor:pointer;text-align:left;width:100%}
+.drawer-item:hover,.drawer-item:active{background:rgba(255,255,255,.07)}
+.drawer-icon{width:20px;height:20px;flex-shrink:0;opacity:.7}
+.drawer-sep{height:.5px;background:rgba(255,255,255,.10);margin:6px 0}
+
+/* ── Chat status strip ───────────────────────────── */
+.chat-strip{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:8px 18px;border-bottom:.5px solid var(--div);background:#000000}
+.chat-strip-scope{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em}
+.chat-strip-sep{font-size:10px;color:#3A3A3C;font-weight:400}
+.chat-strip-model{font-size:11px;color:var(--text2);font-weight:500}
+
+/* ── Chat action buttons ─────────────────────────── */
+.chat-actions{flex-shrink:0;display:flex;gap:8px;padding:8px 12px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chat-actions::-webkit-scrollbar{display:none}
+.chat-act-btn{flex-shrink:0;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:6px 14px;font:inherit;font-size:12px;font-weight:500;background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;letter-spacing:-.01em}
+.chat-act-btn:active{background:rgba(255,255,255,.07)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<script>marked.use({ gfm: true, breaks: false });</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
@@ -318,6 +413,53 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
   </div>
 </div>
 
+<!-- Drawer overlay -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<!-- Drawer -->
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">GE <span class="drawer-logo-dot"></span></div>
+  <div class="drawer-section-lbl">Tools</div>
+  <button class="drawer-item" id="drawerSystem">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    System
+  </button>
+  <button class="drawer-item" id="drawerImport">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="12" y1="18" x2="12" y2="12"/>
+      <line x1="9"  y1="15" x2="15" y2="15"/>
+    </svg>
+    Import
+  </button>
+  <button class="drawer-item" id="drawerExport">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    Export
+  </button>
+  <button class="drawer-item" id="drawerResearch">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    Research
+  </button>
+  <div class="drawer-sep"></div>
+  <div class="drawer-section-lbl">Preferences</div>
+  <button class="drawer-item" id="drawerTheme">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    Theme
+  </button>
+</div>
+
 <div class="app">
 
   <!-- Header -->
@@ -326,12 +468,20 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
       <div class="hdr-title">GE <span class="hdr-dot"></span></div>
       <span class="status-dot"   id="statusDot"></span>
       <span class="status-label" id="statusLabel"></span>
+      <span class="model-dot"    id="activeModelDot" style="display:none"></span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="user-email" id="userEmailDisplay"></span>
       <button class="theme-btn" id="themeBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <button class="menu-btn" id="menuBtn" title="Menu">
+        <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="0" y1="1"  x2="18" y2="1"/>
+          <line x1="0" y1="7"  x2="18" y2="7"/>
+          <line x1="0" y1="13" x2="18" y2="13"/>
         </svg>
       </button>
     </div>
@@ -349,7 +499,17 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
 
   <!-- ① Chat -->
   <div class="screen" id="screen-chat">
+    <div class="chat-strip" id="chatStrip">
+      <span class="chat-strip-scope" id="chatStripScope">GLOBAL</span>
+      <span class="model-dot" id="chatStripDot" style="display:none"></span>
+    </div>
     <div class="thread" id="thread"></div>
+    <div class="chat-actions" id="chatActions">
+      <button class="chat-act-btn" id="actProposeMemory">Propose Memory</button>
+      <button class="chat-act-btn" id="actRecallContext">Recall Context</button>
+      <button class="chat-act-btn" id="actProposeFocus">Propose Focus</button>
+      <button class="chat-act-btn" id="actInspectRoute">Inspect Route</button>
+    </div>
     <div class="input-area">
       <div class="import-panel" id="importPanel">
         <div class="import-hdr">Paste context — prepended to your next message</div>
@@ -437,14 +597,6 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
             <div class="tog-track"></div>
             <div class="tog-thumb"></div>
           </label>
-        </div>
-      </div>
-
-      <div class="s-group">
-        <div class="s-label">Custom Scopes</div>
-        <div class="scope-grid" id="scopeGrid">
-          <button class="s-scope on" data-scope="global">Global</button>
-          <button class="s-scope s-scope-add" id="scopeAddBtn">＋</button>
         </div>
       </div>
 
@@ -557,13 +709,13 @@ const modelDis    = $('modelDisplay');
 const msgCountDis = $('msgCountDisplay');
 const memList     = $('memList');
 const toastEl     = $('toast');
-const scopeGrid   = $('scopeGrid');
 
 // ── Theme ─────────────────────────────────────────────────────
 let isDark = localStorage.getItem('ge_theme') !== 'light';
 function applyTheme(dark) {
   isDark = dark;
   document.body.classList.toggle('light', !dark);
+  document.documentElement.style.background = dark ? '' : '#FFFFFF';
   themeTog.checked = dark;
   localStorage.setItem('ge_theme', dark ? 'dark' : 'light');
 }
@@ -579,13 +731,25 @@ const DEFAULT_BUSINESSES = [
 ];
 let businesses = [];
 
-function loadBusinesses() {
-  try { businesses = JSON.parse(localStorage.getItem('ge_businesses')); } catch { businesses = null; }
-  if (!businesses || !businesses.length) businesses = DEFAULT_BUSINESSES.map(b => ({ ...b }));
-  saveBusinesses();
+async function loadUserConfig() {
+  try {
+    const res = await authFetch(`${WORKER}/user-config`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    businesses = Array.isArray(data.businesses) ? data.businesses : DEFAULT_BUSINESSES.map(b => ({ ...b }));
+  } catch {
+    if (!businesses.length) businesses = DEFAULT_BUSINESSES.map(b => ({ ...b }));
+  }
+  renderBusinesses();
+  renderScopePills();
 }
-function saveBusinesses() {
-  localStorage.setItem('ge_businesses', JSON.stringify(businesses));
+function saveUserConfig() {
+  if (!currentUser) return;
+  authFetch(`${WORKER}/user-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ businesses }),
+  }).catch(() => {});
 }
 
 function renderBusinesses() {
@@ -669,18 +833,6 @@ function renderScopePills() {
     dropdown.appendChild(glob);
   }
 
-  customScopes.forEach(name => {
-    if (name === scope) return;
-    const opt = document.createElement('button');
-    opt.className = 'scope-option';
-    const dot = document.createElement('span');
-    dot.className = 'scope-option-dot';
-    dot.style.background = '#8E8E93';
-    opt.appendChild(dot);
-    opt.appendChild(document.createTextNode(name));
-    opt.onclick = () => { applyScope(name); closeDropdown(); };
-    dropdown.appendChild(opt);
-  });
 }
 
 $('scopeTrigger').onclick = e => {
@@ -739,7 +891,7 @@ $('bizSaveBtn').onclick = () => {
   } else {
     businesses.push({ id: Date.now().toString(), name, description: desc, scope: sc, color: selectedBizColor });
   }
-  saveBusinesses();
+  saveUserConfig();
   renderBusinesses();
   renderScopePills();
   closeBizModal();
@@ -748,56 +900,12 @@ $('bizSaveBtn').onclick = () => {
 $('bizDeleteBtn').onclick = () => {
   if (!editingBizId || !confirm('Delete this business?')) return;
   businesses = businesses.filter(b => b.id !== editingBizId);
-  saveBusinesses();
+  saveUserConfig();
   renderBusinesses();
   renderScopePills();
   closeBizModal();
 };
 
-// ── Custom scopes (State tab) ─────────────────────────────────
-let customScopes = JSON.parse(localStorage.getItem('ge_custom_scopes') || '[]');
-
-function saveCustomScopes() {
-  localStorage.setItem('ge_custom_scopes', JSON.stringify(customScopes));
-}
-
-function renderScopes() {
-  scopeGrid.querySelectorAll('.s-scope:not([data-scope="global"]):not(.s-scope-add)').forEach(el => el.remove());
-  const addBtn = $('scopeAddBtn');
-  customScopes.forEach(name => {
-    const btn = document.createElement('button');
-    btn.className = 's-scope';
-    btn.dataset.scope = name;
-    btn.textContent = name;
-    btn.classList.toggle('on', scope === name);
-    let pressTimer;
-    const startPress = () => { pressTimer = setTimeout(() => showScopeMenu(name), 500); };
-    const cancelPress = () => clearTimeout(pressTimer);
-    btn.addEventListener('mousedown',  startPress);
-    btn.addEventListener('touchstart', startPress, { passive: true });
-    btn.addEventListener('mouseup',    cancelPress);
-    btn.addEventListener('mouseleave', cancelPress);
-    btn.addEventListener('touchend',   cancelPress);
-    scopeGrid.insertBefore(btn, addBtn);
-  });
-  scopeGrid.querySelectorAll('.s-scope').forEach(p =>
-    p.classList.toggle('on', p.dataset.scope === scope));
-}
-
-function showScopeMenu(name) {
-  const action = prompt(`Scope: "${name}"\n\nNew name to rename, or type DELETE to remove:`);
-  if (!action) return;
-  if (action.trim().toUpperCase() === 'DELETE') {
-    customScopes = customScopes.filter(s => s !== name);
-    if (scope === name) applyScope('global');
-    saveCustomScopes(); renderScopes();
-  } else if (action.trim()) {
-    const n = action.trim();
-    customScopes = customScopes.map(s => s === name ? n : s);
-    if (scope === name) scope = n;
-    saveCustomScopes(); renderScopes();
-  }
-}
 
 function summarizeCurrentSession() {
   if (!sessionId || !_cachedToken) return;
@@ -809,35 +917,70 @@ function summarizeCurrentSession() {
   }).catch(() => {});
 }
 
+async function loadScopeSession(s) {
+  if (!currentUser) return;
+  const targetScope = s;
+  try {
+    const res = await authFetch(`${WORKER}/scope-session?scope=${encodeURIComponent(s)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.active || !data.session_id) return;
+    if (scope !== targetScope) return; // scope changed while awaiting
+    sessionId = data.session_id;
+    sessDisplay.textContent = data.session_id;
+    if (data.active_model) {
+      modelDis.textContent = shortModel(data.active_model);
+      const dot = $('activeModelDot');
+      dot.style.background = modelDotColor(data.active_model);
+      dot.style.display = 'inline-block';
+    }
+    if (messages.length === 0) {
+      const recallRes = await authFetch(`${WORKER}/recall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: data.session_id, limit: 20, last: true }),
+      });
+      if (recallRes.ok) {
+        const recallData = await recallRes.json();
+        if (recallData.messages?.length && scope === targetScope) {
+          messages = recallData.messages.map(m => ({
+            role:      m.role,
+            text:      m.content || '',
+            model:     m.model    || null,
+            scope:     m.scope    || null,
+            thinkMode: m.think_mode || false,
+            saved:     true,
+            dismissed: true,
+          }));
+          saveLocal();
+          renderAll();
+        }
+      }
+    }
+  } catch {}
+}
+
 function applyScope(s) {
-  summarizeCurrentSession(); // fire-and-forget before resetting
+  const scopeChanged = s !== scope;
+  if (scopeChanged) summarizeCurrentSession();
   scope = s;
-  sessionId = null;
   localStorage.setItem('ge_scope', s);
-  scopeGrid.querySelectorAll('.s-scope').forEach(p =>
-    p.classList.toggle('on', p.dataset.scope === s));
   renderScopePills();
+  const stripScopeEl = $('chatStripScope');
+  if (stripScopeEl) stripScopeEl.textContent = s.toUpperCase();
+  if (scopeChanged) {
+    sessionId = null;
+    messages = [];
+    loadLocal();
+    renderAll();
+    loadScopeSession(s);
+  }
 }
 
 window.addEventListener('beforeunload', () => {
   summarizeCurrentSession();
 });
 
-scopeGrid.querySelector('[data-scope="global"]').onclick = () => applyScope('global');
-scopeGrid.addEventListener('click', e => {
-  const p = e.target.closest('.s-scope[data-scope]');
-  if (p && p.dataset.scope !== 'global' && !p.classList.contains('s-scope-add')) applyScope(p.dataset.scope);
-});
-$('scopeAddBtn').onclick = () => {
-  const name = prompt('New scope name:');
-  if (!name?.trim()) return;
-  const t = name.trim();
-  if (customScopes.includes(t) || t.toLowerCase() === 'global') { toast('Scope already exists'); return; }
-  customScopes.push(t);
-  saveCustomScopes(); renderScopes(); applyScope(t);
-};
-
-renderScopes();
 applyScope(scope);
 
 // ── Phase 6.5: Runtime state ──────────────────────────────────
@@ -950,26 +1093,8 @@ function renderMsg(msg, idx) {
 
     const bbl = document.createElement('div');
     bbl.className = 'bubble ai-bbl';
-    bbl.textContent = msg.text;
+    bbl.innerHTML = renderMarkdown(msg.text);
     wrap.appendChild(bbl);
-
-    if (msg.model || (msg.scope && msg.scope !== 'global')) {
-      const meta = document.createElement('div');
-      meta.className = 'msg-meta';
-      if (msg.scope && msg.scope !== 'global') {
-        const s = document.createElement('span');
-        s.className = 'scope-pill-msg';
-        s.textContent = msg.scope;
-        meta.appendChild(s);
-      }
-      if (msg.model) {
-        const m = document.createElement('span');
-        m.className = 'model-label';
-        m.textContent = shortModel(msg.model);
-        meta.appendChild(m);
-      }
-      wrap.appendChild(meta);
-    }
 
     if (!msg.saved && !msg.dismissed) {
       const row = document.createElement('div');
@@ -989,7 +1114,7 @@ function renderMsg(msg, idx) {
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           ok.textContent = 'Saved ✓';
-          ok.style.background = '#00C46A';
+          ok.style.background = '#00FF87';
           ok.style.color = '#000';
           no.remove();
           messages[idx].saved = true;
@@ -1020,6 +1145,12 @@ function renderMsg(msg, idx) {
   return wrap;
 }
 
+function renderMarkdown(text) {
+  if (!text) return '';
+  try { return marked.parse(text, { gfm: true, breaks: false }); }
+  catch { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+}
+
 function stripMarkdown(text) {
   return text
     .replace(/```[\s\S]*?```/g, m => m.replace(/^```[^\n]*\n?/,'').replace(/\n?```$/,''))
@@ -1038,6 +1169,22 @@ function shortModel(m) {
   return m.replace('anthropic/','').replace('openai/','').replace('google/','');
 }
 
+function updateStripModel(m) {
+  const dot = $('chatStripDot');
+  if (!m) { if (dot) dot.style.display = 'none'; return; }
+  if (dot) { dot.style.background = modelDotColor(m); dot.style.display = 'inline-block'; }
+}
+
+function modelDotColor(m) {
+  if (!m) return '#3A3A3C';
+  const s = m.toLowerCase();
+  if (s.includes('opus'))                          return '#7B1010';
+  if (s.includes('sonnet'))                        return '#FF453A';
+  if (s.includes('gpt') || s.includes('openai'))  return '#00FF87';
+  if (s.includes('gemini') || s.includes('google')) return '#0A84FF';
+  return '#3A3A3C';
+}
+
 function renderAll() {
   thread.innerHTML = '';
   messages.forEach((m, i) => thread.appendChild(renderMsg(m, i)));
@@ -1046,8 +1193,8 @@ function renderAll() {
 }
 
 // ── Persist ───────────────────────────────────────────────────
-function saveLocal() { localStorage.setItem('ge_msgs', JSON.stringify(messages.slice(-120))); }
-function loadLocal()  { try { messages = JSON.parse(localStorage.getItem('ge_msgs') || '[]'); } catch {} }
+function saveLocal() { localStorage.setItem(`ge_msgs_${scope}`, JSON.stringify(messages.slice(-120))); }
+function loadLocal()  { try { messages = JSON.parse(localStorage.getItem(`ge_msgs_${scope}`) || '[]'); } catch {} }
 
 // ── Send ──────────────────────────────────────────────────────
 async function send() {
@@ -1089,7 +1236,7 @@ async function send() {
   let fullText = '', streamWrap = null, streamBbl = null, done = {};
 
   try {
-    const body = { message: messageToSend || '', session_id: sessionId, scope };
+    const body = { message: messageToSend || '', session_id: sessionId, scope, client_timestamp: new Date().toISOString() };
     if (img) body.image = img.base64;
 
     const res = await authFetch(`${WORKER}/chat`, {
@@ -1133,20 +1280,39 @@ async function send() {
                 thread.scrollTop = thread.scrollHeight;
               }
               fullText += chunk.content;
-              streamBbl.textContent = stripMarkdown(fullText);
+              streamBbl.textContent = fullText;
               thread.scrollTop = thread.scrollHeight;
             } else if (chunk.type === 'done') {
               done = chunk;
-              if (chunk.session_id) { sessionId = chunk.session_id; sessDisplay.textContent = chunk.session_id; }
-              if (chunk.model) modelDis.textContent = shortModel(chunk.model);
+              if (chunk.session_id) {
+                if (!sessionId) sessionId = chunk.session_id;
+                sessDisplay.textContent = chunk.session_id;
+              }
+              if (chunk.model) {
+                modelDis.textContent = shortModel(chunk.model);
+                const dot = $('activeModelDot');
+                dot.style.background = modelDotColor(chunk.model);
+                dot.style.display = 'inline-block';
+                updateStripModel(chunk.model);
+              }
+              if (streamBbl) streamBbl.innerHTML = renderMarkdown(fullText);
               if (streamBbl) streamBbl.classList.remove('streaming');
-              // Phase 6.5: update runtime state from done metadata
               if (chunk.runtime_degraded) setRuntimeState('degraded');
               else if (chunk.status === 'ok') setRuntimeState('connected');
               const badge = document.getElementById('stream-think-badge');
               if (badge) {
                 if (chunk.think_mode) { badge.innerHTML = `<span class="think-dot"></span>Think Mode`; badge.removeAttribute('id'); }
                 else badge.remove();
+              }
+              maybeNotify(chunk);
+            } else if (chunk.type === 'state') {
+              if (chunk.session_id) sessDisplay.textContent = chunk.session_id;
+              if (chunk.active_model) {
+                modelDis.textContent = shortModel(chunk.active_model);
+                const dot = $('activeModelDot');
+                dot.style.background = modelDotColor(chunk.active_model);
+                dot.style.display = 'inline-block';
+                updateStripModel(chunk.active_model);
               }
             }
           } catch {}
@@ -1161,8 +1327,18 @@ async function send() {
             const chunk = JSON.parse(line.slice(6));
             if (chunk.type === 'done') {
               done = chunk;
-              if (chunk.session_id) { sessionId = chunk.session_id; sessDisplay.textContent = chunk.session_id; }
-              if (chunk.model) modelDis.textContent = shortModel(chunk.model);
+              if (chunk.session_id) {
+                if (!sessionId) sessionId = chunk.session_id;
+                sessDisplay.textContent = chunk.session_id;
+              }
+              if (chunk.model) {
+                modelDis.textContent = shortModel(chunk.model);
+                const dot = $('activeModelDot');
+                dot.style.background = modelDotColor(chunk.model);
+                dot.style.display = 'inline-block';
+                updateStripModel(chunk.model);
+              }
+              if (streamBbl) streamBbl.innerHTML = renderMarkdown(fullText);
               if (streamBbl) streamBbl.classList.remove('streaming');
               if (chunk.runtime_degraded) setRuntimeState('degraded');
               else if (chunk.status === 'ok') setRuntimeState('connected');
@@ -1170,6 +1346,16 @@ async function send() {
               if (badge) {
                 if (chunk.think_mode) { badge.innerHTML = `<span class="think-dot"></span>Think Mode`; badge.removeAttribute('id'); }
                 else badge.remove();
+              }
+              maybeNotify(chunk);
+            } else if (chunk.type === 'state') {
+              if (chunk.session_id) sessDisplay.textContent = chunk.session_id;
+              if (chunk.active_model) {
+                modelDis.textContent = shortModel(chunk.active_model);
+                const dot = $('activeModelDot');
+                dot.style.background = modelDotColor(chunk.active_model);
+                dot.style.display = 'inline-block';
+                updateStripModel(chunk.active_model);
               }
             }
           } catch {}
@@ -1192,7 +1378,10 @@ async function send() {
       typing.remove();
       const data = await res.json();
       fullText = data.reply || '—';
-      if (data.session_id) { sessionId = data.session_id; sessDisplay.textContent = data.session_id; }
+      if (data.session_id) {
+        if (!sessionId) sessionId = data.session_id;
+        sessDisplay.textContent = data.session_id;
+      }
     }
   } catch {
     typing.remove();
@@ -1203,7 +1392,7 @@ async function send() {
   streamWrap?.remove();
   if (fullText) {
     messages.push({
-      role: 'assistant', text: stripMarkdown(fullText),
+      role: 'assistant', text: fullText,
       model: done.model || null, scope: done.scope || null,
       thinkMode: done.think_mode || false, saved: false, dismissed: false,
     });
@@ -1422,7 +1611,7 @@ async function loadReview() {
           });
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           btn.textContent = 'Approved ✓';
-          btn.style.background = '#00C46A';
+          btn.style.background = '#00FF87';
           card.style.opacity = '0.5';
           checkPendingCount();
         } catch {
@@ -1469,59 +1658,114 @@ async function checkPendingCount() {
   } catch {}
 }
 
+// ── Notifications ────────────────────────────────────────────
+function maybeNotify(chunk) {
+  if (!chunk.notify) return;
+  if (!document.hidden) return;
+  if (Notification.permission !== 'granted') return;
+  const scopeLabel = (chunk.scope || scope || 'global').toUpperCase();
+  const raw  = (chunk.message || '').replace(/\s+/g, ' ').trim();
+  const body = raw.length > 120 ? raw.slice(0, 120) + '…' : raw;
+  const n = new Notification(`GE · ${scopeLabel}`, {
+    body,
+    icon:   '/ge-icon-192.png',
+    tag:    `ge-action-${chunk.session_id || 'session'}`,
+    silent: false,
+  });
+  n.onclick = () => {
+    window.focus();
+    if (chunk.scope && chunk.scope !== scope) applyScope(chunk.scope);
+    switchTab('chat');
+    n.close();
+  };
+}
+
+// ── Drawer ───────────────────────────────────────────────────
+function openDrawer()  { $('drawer').classList.add('open'); $('drawerOverlay').classList.add('open'); }
+function closeDrawer() { $('drawer').classList.remove('open'); $('drawerOverlay').classList.remove('open'); }
+$('menuBtn').onclick       = openDrawer;
+$('drawerOverlay').onclick = closeDrawer;
+
+$('drawerSystem').onclick = () => { closeDrawer(); switchTab('state'); };
+$('drawerImport').onclick  = () => {
+  closeDrawer(); switchTab('chat');
+  importPanel.classList.add('show');
+  importTa.focus();
+};
+$('drawerExport').onclick   = () => { closeDrawer(); exportChat(); };
+$('drawerResearch').onclick = () => { closeDrawer(); activateResearch(); };
+$('drawerTheme').onclick    = () => { closeDrawer(); applyTheme(!isDark); };
+
+function exportChat() {
+  if (!messages.length) { toast('No messages to export'); return; }
+  const lines = messages.map(m => `[${m.role.toUpperCase()}]\n${m.text}`).join('\n\n---\n\n');
+  const blob = new Blob([lines], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `ge-chat-${scope}-${Date.now()}.txt`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Chat exported');
+}
+
+function activateResearch() {
+  switchTab('chat');
+  composer.value = '/deep ';
+  composer.focus(); grow();
+  toast('Research mode — add your query');
+}
+
+// ── Chat action buttons ───────────────────────────────────────
+$('actProposeMemory').onclick = () => {
+  const text = prompt('Memory to propose:');
+  if (!text?.trim()) return;
+  authFetch(`${WORKER}/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: text.trim(), scope, session_id: sessionId }),
+  }).then(r => { r.ok ? toast('Memory proposed — review it in the Review tab') : toast('Proposal failed'); })
+    .catch(() => toast('Proposal failed'));
+};
+
+$('actRecallContext').onclick = async () => {
+  if (!sessionId) { toast('No active session'); return; }
+  try {
+    const res = await authFetch(`${WORKER}/recall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, limit: 5, last: true }),
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const count = data.messages?.length || 0;
+    toast(`${count} message${count !== 1 ? 's' : ''} in active context`);
+  } catch { toast('Recall failed'); }
+};
+
+$('actProposeFocus').onclick = () => {
+  const text = prompt('Describe your focus or goal:');
+  if (!text?.trim()) return;
+  authFetch(`${WORKER}/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: `[FOCUS] ${text.trim()}`, scope, session_id: sessionId, pinned: true }),
+  }).then(r => { r.ok ? toast('Focus proposed — review it in the Review tab') : toast('Proposal failed'); })
+    .catch(() => toast('Proposal failed'));
+};
+
+$('actInspectRoute').onclick = () => {
+  const model = modelDis.textContent || '—';
+  const sess  = sessDisplay.textContent || '—';
+  const short = sess.length > 8 ? '…' + sess.slice(-8) : sess;
+  toast(`${scope} · ${model} · ${short}`);
+};
+
 // ── Boot ──────────────────────────────────────────────────────
 async function boot() {
-  loadBusinesses();
-  renderBusinesses();
-  renderScopePills();
+  await loadUserConfig();
   loadLocal();
   renderAll();
   checkHealth();
-
-  // Cross-device continuity: restore active session
-  try {
-    const res = await authFetch(`${WORKER}/active-session`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.active && data.session_id) {
-        sessionId = data.session_id;
-        sessDisplay.textContent = data.session_id;
-        if (data.scope && data.scope !== scope) {
-          scope = data.scope;
-          localStorage.setItem('ge_scope', scope);
-          scopeGrid.querySelectorAll('.s-scope').forEach(p =>
-            p.classList.toggle('on', p.dataset.scope === scope));
-          renderScopePills();
-        }
-      }
-    }
-  } catch {}
-
-  if (sessionId) {
-    try {
-      const res = await authFetch(`${WORKER}/recall`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, limit: 10, last: true }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.messages?.length) {
-          messages = data.messages.map(m => ({
-            role:      m.role,
-            text:      m.content || '',
-            model:     m.model     || null,
-            scope:     m.scope     || null,
-            thinkMode: m.think_mode || false,
-            saved:     true,
-            dismissed: true,
-          }));
-          saveLocal(); renderAll();
-        }
-      }
-    } catch {}
-  }
-
+  await loadScopeSession(scope);
   checkPendingCount();
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
@@ -1626,6 +1870,31 @@ $('logoutBtn').onclick = () => auth.signOut();
     }
   });
 })();
+
+// Mobile keyboard: pin .app to visual viewport — direct inline style, no CSS var delay
+const _appEl = document.querySelector('.app');
+if (window.visualViewport && _appEl) {
+  let _vvRaf;
+  const syncVV = () => {
+    const vvp = window.visualViewport;
+    cancelAnimationFrame(_vvRaf);
+    _vvRaf = requestAnimationFrame(() => {
+      _appEl.style.top    = vvp.offsetTop + 'px';
+      _appEl.style.height = vvp.height + 'px';
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      thread.scrollTop = thread.scrollHeight;
+    });
+  };
+  window.visualViewport.addEventListener('resize', syncVV);
+  window.visualViewport.addEventListener('scroll', syncVV);
+  syncVV();
+}
+composer.addEventListener('focus', () => {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+});
 </script>
 </body>
 </html>
