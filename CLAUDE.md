@@ -1,7 +1,7 @@
 # Generator Engine — CLAUDE.md
 
 ## Build Status
-V2.3 complete as of 2026-04-26.
+V2.4 complete as of 2026-04-27.
 All 16 original steps done.
 
 Session 2 additional fixes:
@@ -15,7 +15,17 @@ Session 2 additional fixes:
 - Light mode theme — complete overhaul: token fixes, 30+ component overrides, applyTheme sets html background
 - Behavior rules — 5 rules added to GE identity system prompt: Focus Lock, No Unsolicited Suggestions, Auto Response Calibration, Escalation Trigger, Time Awareness (client_timestamp + first-message greeting)
 
-Next: Session 3 — To-do list, Reminders, Scheduling.
+Session 3 — Tasks/Reminders (2026-04-27):
+- Firestore collection users/{uid}/todos — fields: title, scope, due_date, reminder_time, created_at, completed_at, status, user_id
+- Worker routes: POST /todo (create), GET /todos (list with scope/status filter), POST /todo/complete (mark done)
+- hasActionableContent() drives propose_todos flag in SSE done events (main + debate); suppressed in /think mode
+- Tasks — 6th nav tab with scope filter pills, todo list, tap-to-complete animation
+- "＋ Save as Task" chip after AI responses with action items; suggests title from first line of response
+- FAB + bottom-sheet modal: title, scope, due date, reminder datetime-local inputs
+- scheduleReminders() fires browser Notification at reminder_time for todos within 24h window
+- Light mode overrides for all new task components; sessionId invariant fix (state events no longer overwrite sessionId)
+
+Next: Session 4 — TBD.
 
 ## Stack
 - Frontend: Cloudflare Pages (generator-engine.pages.dev)
