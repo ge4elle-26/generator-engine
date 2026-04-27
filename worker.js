@@ -1135,10 +1135,19 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   // Build user content (text or text+image or text+attachment)
   let userContent;
   if (image) {
-    // OpenRouter uses OpenAI-compatible API — image_url format required (not Anthropic native source format)
+    const imageMime = (image.match(/^data:([^;]+);/) || [])[1] || 'unknown';
+    const imageKb   = Math.round(image.length * 0.75 / 1024);
+    console.log(`[ge-ai] image attached: mime=${imageMime} size=${imageKb}KB detail=high`);
+    // Detect document/OCR queries — inject extraction instruction so model reads image directly
+    const docPattern = /price|cost|rate|per\s*k[gi]|menu|receipt|invoice|table|pricelist|read|extract|ocr|how\s*much|kilo|list|what.*say|text in/i;
+    const isDocQuery = docPattern.test(cleanMessage);
+    const imagePrompt = isDocQuery
+      ? `Read this image carefully. Extract all visible text exactly as shown in the image — do not rely on prior knowledge, context, or saved memory. For price lists, menus, tables, or receipts: list each row with the item name and its price on a separate line. Return only what is clearly visible in this image. For any row where the text is genuinely unreadable due to blur or obstruction, note [unreadable] for that specific row only.\n\n${cleanMessage}`.trim()
+      : (cleanMessage || 'Describe what is in this image.');
+    // OpenRouter uses OpenAI-compatible API — image_url format; detail:high forces full-resolution tile processing
     userContent = [
-      { type: 'image_url', image_url: { url: image } },
-      { type: 'text', text: cleanMessage || 'What is in this image?' },
+      { type: 'image_url', image_url: { url: image, detail: 'high' } },
+      { type: 'text', text: imagePrompt },
     ];
   } else if (attachment_url) {
     userContent = cleanMessage
