@@ -25,7 +25,12 @@ Session 3 — Tasks/Reminders (2026-04-27):
 - scheduleReminders() fires browser Notification at reminder_time for todos within 24h window
 - Light mode overrides for all new task components; sessionId invariant fix (state events no longer overwrite sessionId)
 
-Next: Session 4 — TBD.
+Session 4 — Bug Fix Pass (2026-04-27):
+- Bug 1 fixed: statusLabel (header) was showing "Runtime Connected" text — setRuntimeState now only updates the header dot (statusDot), not the text label. Dot-only as intended.
+- Bug 2 fixed: actProposeMemory was calling POST /save (bypasses review queue). Added POST /memory route (handleCreateMemoryProposal) that writes to users/{uid}/memory_proposals for pending review. Added saveMemory() function in index.html. actProposeMemory now calls saveMemory(). handleRecallMemory now has try-catch around initFirestore + .catch(() => []) on db.query.
+- Bug 3 fixed: handleReview had no try-catch around initFirestore — any Firestore init failure returned 500, triggering loadReview() catch block ("Could not load proposals."). Wrapped in try-catch; now returns { count:0, items:[] } on Firestore error instead of 500.
+
+Next: Session 5 — TBD.
 
 ## Stack
 - Frontend: Cloudflare Pages (generator-engine.pages.dev)

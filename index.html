@@ -1074,10 +1074,11 @@ const RUNTIME_STATES = {
 };
 function setRuntimeState(state) {
   const cfg = RUNTIME_STATES[state] || RUNTIME_STATES.failed;
-  const dot1 = $('statusDot'),       lbl1 = $('statusLabel');
-  const dot2 = $('stateStatusDot'),  lbl2 = $('stateStatusLabel');
-  [dot1, dot2].forEach(d => d.style.background = cfg.color);
-  [lbl1, lbl2].forEach(l => { l.textContent = cfg.label; l.style.color = cfg.color; });
+  $('statusDot').style.background = cfg.color;  // header: dot only, no text
+  const dot2 = $('stateStatusDot'), lbl2 = $('stateStatusLabel');
+  dot2.style.background = cfg.color;
+  lbl2.textContent = cfg.label;
+  lbl2.style.color  = cfg.color;
 }
 
 // ── Health check ──────────────────────────────────────────────
@@ -1828,15 +1829,23 @@ function activateResearch() {
   toast('Research mode — add your query');
 }
 
+// ── Memory helpers ────────────────────────────────────────────
+async function saveMemory(content, scopeOverride) {
+  const res = await authFetch(`${WORKER}/memory`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: content.trim(), scope: scopeOverride || scope }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 // ── Chat action buttons ───────────────────────────────────────
 $('actProposeMemory').onclick = () => {
   const text = prompt('Memory to propose:');
   if (!text?.trim()) return;
-  authFetch(`${WORKER}/save`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: text.trim(), scope, session_id: sessionId }),
-  }).then(r => { r.ok ? toast('Memory proposed — review it in the Review tab') : toast('Proposal failed'); })
+  saveMemory(text.trim())
+    .then(() => toast('Memory proposed — review it in the Review tab'))
     .catch(() => toast('Proposal failed'));
 };
 

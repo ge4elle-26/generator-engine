@@ -1236,8 +1236,13 @@ async function handleRecallMemory(request, env) {
   const limit = Math.min(limitParam, 200);
   const scopeParam = url.searchParams.get('scope') || null;
 
-  const db = await initFirestore(env);
-  const raw = await db.query(`users/${user.uid}`, 'memory', { limit: 200 });
+  let raw = [];
+  try {
+    const db = await initFirestore(env);
+    raw = await db.query(`users/${user.uid}`, 'memory', { limit: 200 }).catch(() => []);
+  } catch (e) {
+    console.error('[ge-ai] handleRecallMemory Firestore error:', e.message);
+  }
   const filtered = scopeParam ? raw.filter(i => i.scope === scopeParam) : raw;
   filtered.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
 
@@ -1688,6 +1693,29 @@ async function handleAdminSeedMemory(request, env) {
   return jsonResponse({ seeded: results.length, results, timestamp: now });
 }
 
+// POST /memory — creates a single pending proposal in users/{uid}/memory_proposals (for review)
+async function handleCreateMemoryProposal(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+  const { content, scope } = body;
+  if (!content || typeof content !== 'string') return errorResponse('content (string) is required');
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+  const id = await db.add(`users/${user.uid}/memory_proposals`, {
+    content:     content.trim(),
+    scope:       scope || 'global',
+    type:        'fact',
+    title:       content.trim().slice(0, 60),
+    confidence:  1.0,
+    status:      'pending',
+    proposed_at: now,
+    user_id:     user.uid,
+  });
+  return jsonResponse({ id, status: 'pending' });
+}
+
 // GET /review — returns pending import proposals for the authenticated user
 // No Firestore filter: fetches all docs from users/{uid}/memory_proposals and filters in JS.
 // Avoids 400 errors when Firestore auto-indexes don't exist for new/empty collections.
@@ -1698,9 +1726,15 @@ async function handleReview(request, env) {
   const url = new URL(request.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit')) || 100, 200);
 
-  const db = await initFirestore(env);
-  const all = await db.query(`users/${user.uid}`, 'memory_proposals', { limit: 500 })
-    .catch(() => []);
+  let all = [];
+  try {
+    const db = await initFirestore(env);
+    all = await db.query(`users/${user.uid}`, 'memory_proposals', { limit: 500 })
+      .catch(() => []);
+  } catch (e) {
+    console.error('[ge-ai] handleReview Firestore error:', e.message);
+    return jsonResponse({ count: 0, items: [] });
+  }
 
   const items = all
     .filter(i => i.status === 'pending' && i.user_id === user.uid)
@@ -1889,6 +1923,7 @@ export default {
       if (pathname === '/recall' && method === 'POST') return await handleRecall(request, env);
       if (pathname === '/import' && method === 'POST') return await handleImport(request, env);
       if (pathname === '/save'   && method === 'POST') return await handleSave(request, env);
+      if (pathname === '/memory' && method === 'POST') return await handleCreateMemoryProposal(request, env);
       if (pathname === '/review' && method === 'GET')  return await handleReview(request, env);
       if (pathname === '/admin/approve-memory' && method === 'POST') return await handleApproveMemory(request, env);
       if (pathname === '/admin/seed' && method === 'POST') return await handleAdminSeed(request, env);
