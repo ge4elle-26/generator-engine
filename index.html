@@ -1062,7 +1062,7 @@ async function loadScopeSession(s) {
       const recallRes = await authFetch(`${WORKER}/recall`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: data.session_id, limit: 20, last: true }),
+        body: JSON.stringify({ session_id: data.session_id, limit: 30, last: true }),
       });
       if (recallRes.ok) {
         const recallData = await recallRes.json();
@@ -1428,6 +1428,12 @@ async function send() {
   try {
     const body = { message: messageToSend || '', session_id: sessionId, scope, client_timestamp: new Date().toISOString() };
     if (img) body.image = img.base64;
+    // Include recent visible conversation so model has context even when Firestore session is thin
+    const historyForContext = messages.slice(0, userMsgIdx)
+      .filter(m => (m.role === 'user' || m.role === 'assistant') && m.text && !m.queued)
+      .slice(-20)
+      .map(m => ({ role: m.role, content: m.text }));
+    if (historyForContext.length > 0) body.history = historyForContext;
 
     if (fa && currentUserId) {
       try {

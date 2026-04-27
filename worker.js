@@ -951,7 +951,7 @@ async function handleChat(request, env, ctx) {
     return errorResponse('Invalid JSON body');
   }
 
-  const { message, session_id, max_tokens, image, attachment_url, attachment_name, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp } = body;
+  const { message, session_id, max_tokens, image, attachment_url, attachment_name, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp, history } = body;
   if (typeof message !== 'string' || (message.trim() === '' && !image && !attachment_url))
     return errorResponse('message (string) is required');
 
@@ -1034,10 +1034,20 @@ async function handleChat(request, env, ctx) {
   }
 
   // Sliding window: sort fetched messages ascending, keep last 12, compress the rest
-  const allMsgsSorted  = recentRaw.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  const windowMessages = allMsgsSorted.slice(-SLIDING_WINDOW_SIZE).map(({ role, content }) => ({ role, content }));
-  const olderMessages  = allMsgsSorted.slice(0, Math.max(0, allMsgsSorted.length - SLIDING_WINDOW_SIZE));
-  const isFirstMessage = allMsgsSorted.length === 0;
+  const allMsgsSorted   = recentRaw.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const firestoreWindow = allMsgsSorted.slice(-SLIDING_WINDOW_SIZE).map(({ role, content }) => ({ role, content }));
+  const olderMessages   = allMsgsSorted.slice(0, Math.max(0, allMsgsSorted.length - SLIDING_WINDOW_SIZE));
+
+  // Client-supplied history (from frontend localStorage) — used when Firestore session is thin after a reset
+  const clientHistory = Array.isArray(history)
+    ? history
+        .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+        .slice(-SLIDING_WINDOW_SIZE)
+    : [];
+
+  // Firestore wins on tie; client history fills the gap when session is thin
+  const windowMessages = firestoreWindow.length >= clientHistory.length ? firestoreWindow : clientHistory;
+  const isFirstMessage = allMsgsSorted.length === 0 && clientHistory.length === 0;
 
   // Phase 10: Load scoped memory, previous session summary, and compress older history — all in parallel
   const [scopedMemory, prevSummaryItems, historyCompressionSummary] = await Promise.all([
@@ -1079,6 +1089,8 @@ NO UNSOLICITED SUGGESTIONS: Respond only to what was explicitly asked. Do not ex
 AUTO RESPONSE CALIBRATION: Short factual question — answer in 1 to 2 sentences, no elaboration. Decision or strategy question — ask "Quick take or full breakdown?" before answering. Complex multi-part question — go deep automatically, no prompt needed.
 
 ESCALATION TRIGGER: If the answer is quick but the topic involves money, legal exposure, or an irreversible action, append exactly: "This has risk — want a deeper look?" Do not elaborate unsolicited.
+
+CONTEXT SELF-SUFFICIENCY: Conversation history, memory, and session context are all injected into this prompt. Never ask Gerald whether to check memory, pull recall, or retrieve prior context — use only what is already in this prompt. If something is genuinely missing, say so in one sentence and proceed.
 
 TIME AWARENESS: ${isFirstMessage ? `This is the first message of this session. Open your reply with "Good ${manilaTime.period} Gerald, it's ${manilaTime.display}." then a line break, then your response. No other preamble.` : `Current Manila time: ${manilaTime.display}. Do not open with a greeting.`}`);
 
@@ -1157,7 +1169,9 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
     userContent = cleanMessage;
   }
 
-  const messagesForClaude = [...windowMessages, { role: 'user', content: userContent }];
+  // Guard: strip any entry that exactly matches the current user text (prevents client-history duplication)
+  const dedupedWindow = windowMessages.filter(m => !(m.role === 'user' && m.content === cleanMessage));
+  const messagesForClaude = [...dedupedWindow, { role: 'user', content: userContent }];
 
   // /debate — parallel calls to 3 models, streamed as labelled perspectives
   if (mode === 'debate') {
