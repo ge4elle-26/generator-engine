@@ -54,6 +54,15 @@ Session 5 — Attachment System Phase 5.5 (2026-04-27):
 - worker.js: handleSaveAttachment (POST /attachment), handleListAttachments (GET /attachments)
 - Both routes registered in router
 
+Session 8 — Phase 2 Complete (2026-04-27):
+- FIX 1: Enter-to-send desktop only (navigator.maxTouchPoints === 0)
+- FIX 2: Header identity — hdrStatusText ("Live"/"Offline") + hdrHi ("Hi [name]") added to hdr-title; RUNTIME_STATES labels updated; setRuntimeState updates hdrStatusText; auth handler sets hdrHi from displayName or email prefix
+- FIX 3: First-message greeting — TIME AWARENESS removes "Gerald" from chat greeting; rawTodosForBriefing added to second parallel fetch; open todos injected into system prompt on isFirstMessage
+- FIX 4: Voice input — mic button added to input row; MediaRecorder → base64 → POST /transcribe → OpenRouter whisper-large-v3 → transcript in composer; recording state shown via .recording CSS class
+- FIX 5: Offline queue — navigator.onLine check in send() for text-only messages; ge_offline_queue localStorage; queued messages show "Queued — sends when back online" label; window.addEventListener('online') drains queue automatically
+- FIX 6: Push notifications — sw.js service worker; VAPID crypto helpers (webPushEncrypt, buildVapidJwt, sendWebPush) in worker.js; POST /push/subscribe saves subscriptions to Firestore; GET /push/vapid-public-key; GET /push/generate-keys (admin); scheduled() handler fires sendDailyBriefings at 7am/12pm/7pm Manila; wrangler.toml cron triggers added
+- worker.js: handleTranscribe, handlePushSubscribe, handlePushVapidPublicKey, handleGeneratePushKeys, sendDailyBriefings added; all routes registered
+
 Session 8 — Phase 1 Navigation Restructure (2026-04-27):
 - Bottom nav collapsed to 3 tabs: Chat, Tasks, Review (Memory, State, Businesses removed from nav)
 - Drawer restructured: Account section (email + Sign Out) at top; Briefcase scope switcher (businesses + Global, active scope highlighted) in middle; Memory, State, Import, Export, Research, Theme in lower section

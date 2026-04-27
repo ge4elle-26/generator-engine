@@ -245,6 +245,9 @@ textarea.composer::placeholder{color:var(--text2)}
 .send-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;background:var(--send-bg);color:var(--send-fg);cursor:pointer;display:grid;place-items:center}
 .send-btn:disabled{opacity:.35;cursor:default}
 .attach-btn.context-on{color:var(--accent)}
+/* ── Queued message indicator ─────────────────────── */
+.msg-queued-label{font-size:11px;color:#FF9F0A;margin-top:4px;align-self:flex-end;font-weight:600}
+body.light .msg-queued-label{color:#B25000}
 
 /* ── Import panel ───────────────────────────────── */
 .import-panel{display:none;flex-direction:column;gap:8px;background:var(--card);border-radius:var(--r);padding:12px;margin-bottom:8px}
@@ -1255,6 +1258,12 @@ function renderMsg(msg, idx) {
       chip.textContent = `📎 ${msg.attachment.name}`;
       wrap.appendChild(chip);
     }
+    if (msg.queued) {
+      const ql = document.createElement('div');
+      ql.className = 'msg-queued-label';
+      ql.textContent = 'Queued — sends when back online';
+      wrap.appendChild(ql);
+    }
   }
   return wrap;
 }
@@ -1329,6 +1338,33 @@ scrollBtn.onclick = () => { thread.scrollTop = thread.scrollHeight; };
 function saveLocal() { localStorage.setItem(`ge_msgs_${scope}`, JSON.stringify(messages.slice(-120))); }
 function loadLocal()  { try { messages = JSON.parse(localStorage.getItem(`ge_msgs_${scope}`) || '[]'); } catch {} }
 
+// ── Offline queue ─────────────────────────────────────────────
+const GE_OFFLINE_QUEUE_KEY = 'ge_offline_queue';
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem(GE_OFFLINE_QUEUE_KEY) || '[]'); } catch { return []; }
+}
+function saveOfflineQueue(q) { localStorage.setItem(GE_OFFLINE_QUEUE_KEY, JSON.stringify(q)); }
+
+window.addEventListener('online', async () => {
+  const q = getOfflineQueue();
+  if (!q.length) return;
+  saveOfflineQueue([]);
+  toast(`Back online — sending ${q.length} queued message${q.length > 1 ? 's' : ''}…`);
+  for (const item of q) {
+    // Remove the queued placeholder from messages so send() adds a fresh one
+    let idx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].queued && messages[i].role === 'user' && messages[i].text === item.text) { idx = i; break; }
+    }
+    if (idx >= 0) { messages.splice(idx, 1); saveLocal(); }
+    // Restore scope if it changed
+    if (item.scope && item.scope !== scope) applyScope(item.scope);
+    composer.value = item.text;
+    await send();
+    await new Promise(r => setTimeout(r, 400));
+  }
+});
+
 // ── Send ──────────────────────────────────────────────────────
 async function send() {
   const text = composer.value.trim();
@@ -1351,6 +1387,18 @@ async function send() {
   saveLocal();
   renderAll();
   composer.value = ''; grow();
+
+  // Offline: queue text-only messages (images/attachments need connectivity to upload)
+  if (!navigator.onLine && !img && !fa) {
+    const q = getOfflineQueue();
+    q.push({ text, scope });
+    saveOfflineQueue(q);
+    messages[userMsgIdx].queued = true;
+    saveLocal(); renderAll();
+    toast('No connection — message queued');
+    return;
+  }
+
   busy = true; sendBtn.disabled = true;
 
   const isThinkRequest = text.trimStart().startsWith('/think');
