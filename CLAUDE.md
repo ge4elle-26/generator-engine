@@ -30,6 +30,10 @@ Session 4 — Bug Fix Pass (2026-04-27):
 - Bug 2 fixed: actProposeMemory was calling POST /save (bypasses review queue). Added POST /memory route (handleCreateMemoryProposal) that writes to users/{uid}/memory_proposals for pending review. Added saveMemory() function in index.html. actProposeMemory now calls saveMemory(). handleRecallMemory now has try-catch around initFirestore + .catch(() => []) on db.query.
 - Bug 3 fixed: handleReview had no try-catch around initFirestore — any Firestore init failure returned 500, triggering loadReview() catch block ("Could not load proposals."). Wrapped in try-catch; now returns { count:0, items:[] } on Firestore error instead of 500.
 
+Session 7 — Format and icon fix (2026-04-27):
+- Fix 1: Model icons were 404 — files had double extension (claude.png.png), renamed to claude.png/gpt.png/gemini.png; path in getModelIconPath() corrected to /public/icons/models/; onerror logging added to icon img
+- Fix 2: Markdown removed — stripMarkdownForDisplay() added to worker.js, applied to fullText before done event and to each debate perspective; system prompt Formatting Rules block added forbidding asterisks, pound signs, bullet points, backticks; Think Mode and Execute Mode instructions updated to reinforce plain prose
+
 Session 6 — Bug Fix Pass 2 (2026-04-27):
 - Bug 1 fixed: worker handleChat crashed on empty message with attachment — changed !message guard to allow empty string when attachment_url or image present
 - Bug 2 fixed: header dots removed — .hdr-dot, #statusDot, #activeModelDot hidden via CSS display:none!important (elements kept in DOM to avoid JS null crashes)
@@ -49,6 +53,13 @@ Session 5 — Attachment System Phase 5.5 (2026-04-27):
 - loadMemory(): Attachments section added (GET /attachments), filename + date + Open link
 - worker.js: handleSaveAttachment (POST /attachment), handleListAttachments (GET /attachments)
 - Both routes registered in router
+
+Session 8 — Phase 1 Navigation Restructure (2026-04-27):
+- Bottom nav collapsed to 3 tabs: Chat, Tasks, Review (Memory, State, Businesses removed from nav)
+- Drawer restructured: Account section (email + Sign Out) at top; Briefcase scope switcher (businesses + Global, active scope highlighted) in middle; Memory, State, Import, Export, Research, Theme in lower section
+- Header simplified: GE text + single runtime status dot (statusDot re-enabled, green=connected red=failed) + email + hamburger; themeBtn removed from header (kept hidden in DOM for JS); scope pill removed entirely
+- renderDrawerScopes() and renderDrawerAccount() added; called from openDrawer() on every open
+- scopeSelector hidden (display:none) — DOM kept for renderScopePills() internal use
 
 ## Stack
 - Frontend: Cloudflare Pages (generator-engine.pages.dev)
