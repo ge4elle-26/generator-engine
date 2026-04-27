@@ -598,6 +598,47 @@ async function compressHistory(apiKey, messages) {
   }
 }
 
+// Session 9: Auto-extract meaningful context from a single exchange and save directly to Brain Memory
+async function autoExtractAndSaveMemory(apiKey, db, userMessage, aiResponse, scope, uid, date) {
+  const exchange = `User: ${userMessage.substring(0, 600)}\n\nGE: ${aiResponse.substring(0, 1000)}`;
+  try {
+    const res = await callClaude(apiKey, {
+      model: MODELS.BACKGROUND,
+      system: `Extract ALL meaningful context from this conversation exchange as a JSON array. Extract: decisions made, prices or numbers mentioned, products or items discussed, rules or instructions given, commitments stated, business context shared, preferences expressed. Each item must be one distinct piece of information — split merged facts into separate items. Return ONLY a valid JSON array with no markdown, no code blocks, no explanation:
+[{"type":"fact|decision|rule|preference|business_info","content":"full text of this single item"}]
+If there is truly nothing meaningful to extract, return: []`,
+      messages: [{ role: 'user', content: exchange }],
+      maxTokens: 800,
+    });
+    const raw = (res.content?.[0]?.text ?? '').trim();
+    const cleaned = raw.replace(/^```(?:json)?\n?/m, '').replace(/\n?```$/m, '').trim();
+    let items;
+    try { items = JSON.parse(cleaned); } catch { return; }
+    if (!Array.isArray(items) || items.length === 0) return;
+    const now = new Date().toISOString();
+    const saves = items
+      .filter(item => typeof item.content === 'string' && item.content.trim().length > 15)
+      .slice(0, 10)
+      .map(item =>
+        db.add(`users/${uid}/memory`, {
+          content:    item.content.trim(),
+          type:       item.type || 'fact',
+          title:      item.content.trim().substring(0, 60),
+          scope,
+          source:     'auto',
+          uid,
+          created_at: now,
+          status:     'active',
+        }).catch(e => console.error('[ge-ai] auto-memory item save failed:', e.message))
+      );
+    await Promise.all(saves);
+    invalidateScopeCache(`${uid}:${scope}`);
+    console.log(`[ge-ai] auto-memory: saved ${saves.length} items uid=${uid} scope=${scope}`);
+  } catch (e) {
+    console.error('[ge-ai] autoExtractAndSaveMemory failed:', e.message);
+  }
+}
+
 // Smart memory: always load rules+prefs (max 5 each), plus keyword matches (max 5)
 const STOP_WORDS = new Set(['what','this','that','with','from','have','will','your','about','which','when','where','does','into','more','been','also','than','then','only','some','them','they','were','would','could','should','there','their','these','those','just','like','much','very','over','such','even','most','both','each','here','make','well','after','before','while','being']);
 
@@ -1314,6 +1355,28 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
       });
     } catch (logErr) {
       console.error('[ge-ai] Runtime log write failed:', logErr.message);
+    }
+
+    // Session 9: Auto-extract context from this exchange → Brain Memory (silent, no user action needed)
+    if (responseStatus === 'ok' && cleanMessage && fullText) {
+      autoExtractAndSaveMemory(env.OPENROUTER_API_KEY, db, cleanMessage, fullText, validatedScope, user.uid, date)
+        .catch(e => console.error('[ge-ai] auto-memory pipeline failed:', e.message));
+    }
+
+    // Session 9: Save sliding-window compression summary to Brain Memory so nothing is ever lost
+    if (historyCompressionSummary && olderMessages.length > 0) {
+      const compKey = `${sessionId}_comp_${olderMessages.length}`;
+      db.set(`users/${user.uid}/memory`, compKey, {
+        content:    historyCompressionSummary,
+        type:       'fact',
+        title:      `Compressed history ${date} (${olderMessages.length} msgs)`,
+        scope:      validatedScope,
+        source:     'compressed_history',
+        uid:        user.uid,
+        created_at: new Date().toISOString(),
+        status:     'active',
+      }).catch(e => console.error('[ge-ai] compression summary save failed:', e.message));
+      invalidateScopeCache(`${user.uid}:${validatedScope}`);
     }
   };
 

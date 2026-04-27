@@ -1,8 +1,16 @@
 # Generator Engine — CLAUDE.md
 
 ## Build Status
-V2.4 complete as of 2026-04-27.
-All 16 original steps done.
+V2.5 complete as of 2026-04-27.
+All 16 original steps + Session 9 done.
+
+Session 9 — Auto Brain Memory (2026-04-27):
+- autoExtractAndSaveMemory() fires after every successful exchange — uses Gemini Flash (MODELS.BACKGROUND) via OpenRouter to extract decisions, prices, products, rules, commitments, business context, preferences from the last user+AI exchange
+- Extracted items saved directly to users/{uid}/memory with fields: content, type, title, scope, source='auto', uid, created_at, status='active' — no user action, no buttons, completely silent
+- Max 10 items per exchange, min 15 char content filter to suppress noise; scope cache invalidated after each save
+- Sliding window compression summary also saved to Brain Memory using deterministic key (sessionId_comp_N) to prevent duplicates — source='compressed_history'; ensures no context is ever lost when messages fall outside the 12-message window
+- Both saves are fire-and-forget (non-blocking) — they run after writer.close() so they never add latency to the response stream
+- Only fires when responseStatus === 'ok' (not on fallback/error responses)
 
 Session 2 additional fixes:
 - Memory pipeline — 8 broken points fixed (user-scoped paths, uid filtering, import proposal queue, approve flow, seed-memory auth, loadRelevantMemory includes user memories)
