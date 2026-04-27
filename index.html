@@ -79,6 +79,20 @@ body.light .todo-card{border-bottom-color:rgba(0,0,0,.08)}
 body.light .todo-check{border-color:rgba(0,0,0,.25)}
 body.light .todo-modal-card{background:#FFFFFF}
 body.light .todo-modal-title{color:#1C1C1E}
+body.light .drawer-locked{color:rgba(0,0,0,.28)}
+body.light .drawer-soon{background:rgba(0,0,0,.07);color:rgba(0,0,0,.38)}
+body.light .drawer-theme-row:hover,body.light .drawer-theme-row:active{background:rgba(0,0,0,.05)}
+body.light .drawer-theme-lbl{color:#1C1C1E}
+body.light .drawer-about-name{color:rgba(0,0,0,.4)}
+body.light .drawer-about-ver{color:rgba(0,0,0,.22)}
+body.light .drawer-acct-hi{color:#1C1C1E}
+body.light .ie-modal-card{background:#FFFFFF}
+body.light .ie-modal-title{color:#1C1C1E}
+body.light .ie-modal-desc{color:#6C6C70}
+body.light .ie-modal-desc strong{color:#1C1C1E}
+body.light .ie-btn.secondary{background:rgba(0,0,0,.06);color:#1C1C1E}
+body.light .ie-close-btn{color:#6C6C70}
+body.light .bubble.ai-bbl{background:var(--bg)}
 
 /* ── Reset ──────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
@@ -156,7 +170,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .msg.assistant{align-items:flex-start}
 .bubble{max-width:82%;padding:12px 16px;border-radius:var(--r);font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .bubble.user-bbl{background:var(--user-bg);color:var(--text);border-radius:20px 20px 6px 20px;padding:13px 17px;font-weight:400;letter-spacing:-.01em}
-.bubble.ai-bbl{background:transparent;color:var(--text);max-width:100%;padding:4px 0;white-space:normal}
+.bubble.ai-bbl{background:var(--bg);color:var(--text);max-width:100%;padding:10px 14px;white-space:normal;border-radius:12px}
 
 /* ── Markdown inside AI bubbles ─────────────────── */
 .ai-bbl p{margin:.45em 0;line-height:1.55}
@@ -266,8 +280,7 @@ body.light .msg-queued-label{color:#B25000}
 .nav{flex-shrink:0;background:#000000;border-top:.5px solid var(--div);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;min-width:0;position:relative}
 .nav-item.active{color:var(--accent)}
-.nav-lbl{display:none;font-size:10px}
-.nav-item.active .nav-lbl{display:block}
+.nav-lbl{display:block;font-size:10px}
 .nav-icon-wrap{position:relative;display:inline-flex}
 .nav-badge{position:absolute;top:-4px;right:-7px;min-width:16px;height:16px;border-radius:999px;background:#FF453A;color:#FFF;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1;pointer-events:none}
 .nav-badge.show{display:flex}
@@ -447,7 +460,7 @@ body.light .msg-queued-label{color:#B25000}
 .drawer-scope-item.active-scope{color:var(--accent)}
 
 /* ── Chat status strip ───────────────────────────── */
-.chat-strip{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:8px 18px;border-bottom:.5px solid var(--div);background:#000000}
+.chat-strip{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:5px 18px;border-bottom:.5px solid var(--div);background:#000000}
 .chat-strip-scope{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em}
 .chat-strip-sep{font-size:10px;color:#3A3A3C;font-weight:400}
 .chat-strip-model{font-size:11px;color:var(--text2);font-weight:500}
@@ -457,6 +470,37 @@ body.light .msg-queued-label{color:#B25000}
 .chat-actions::-webkit-scrollbar{display:none}
 .chat-act-btn{flex-shrink:0;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:6px 14px;font:inherit;font-size:12px;font-weight:500;background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;letter-spacing:-.01em}
 .chat-act-btn:active{background:rgba(255,255,255,.07)}
+
+/* ── Drawer header greeting ──────────────────────────── */
+.drawer-acct-hi{font-size:15px;font-weight:700;color:#FFF;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Drawer locked item (Chief of Staff) ─────────────── */
+.drawer-locked{display:flex;align-items:center;gap:14px;padding:11px 20px;color:rgba(255,255,255,.28);font-size:14px;font-weight:500;cursor:default;width:100%}
+.drawer-soon{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.09);color:rgba(255,255,255,.38);border-radius:4px;padding:2px 6px;flex-shrink:0}
+
+/* ── Drawer theme row ────────────────────────────────── */
+.drawer-theme-row{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.drawer-theme-row:hover,.drawer-theme-row:active{background:rgba(255,255,255,.07)}
+.drawer-theme-lbl{display:flex;align-items:center;gap:14px;font-size:15px;font-weight:600;color:#FFF}
+.drawer-tog{cursor:pointer;flex-shrink:0}
+
+/* ── Drawer about row ────────────────────────────────── */
+.drawer-about-row{padding:14px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:3px}
+.drawer-about-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.02em}
+.drawer-about-ver{font-size:11px;color:rgba(255,255,255,.2)}
+
+/* ── Import / Export modal ───────────────────────────── */
+.ie-modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);display:flex;align-items:flex-end}
+.ie-modal-overlay.hidden{display:none}
+.ie-modal-card{width:100%;max-width:640px;margin:0 auto;background:#1C1C1E;border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.ie-modal-title{font-size:18px;font-weight:700;color:#FFF}
+.ie-modal-desc{font-size:14px;color:#8E8E93;line-height:1.6}
+.ie-modal-desc strong{color:#FFF;font-weight:700}
+.ie-modal-actions{display:flex;flex-direction:column;gap:8px}
+.ie-btn{border:none;border-radius:12px;padding:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;background:#00FF87;color:#000;text-align:center}
+.ie-btn.secondary{background:rgba(255,255,255,.07);color:#FFF}
+.ie-btn:active{opacity:.85}
+.ie-close-btn{background:none;border:none;color:#8E8E93;font:inherit;font-size:14px;cursor:pointer;padding:4px;text-align:center}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>marked.use({ gfm: true, breaks: false });</script>
@@ -527,18 +571,105 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
   </div>
 </div>
 
+<!-- Import / Export choice modal -->
+<div class="ie-modal-overlay hidden" id="ieModal">
+  <div class="ie-modal-card">
+    <div class="ie-modal-title">Import / Export</div>
+    <div class="ie-modal-desc">
+      <strong>Import</strong> — paste context, data, or notes into GE to include with your next message.<br><br>
+      <strong>Export</strong> — download your current chat as a plain text backup.
+    </div>
+    <div class="ie-modal-actions">
+      <button class="ie-btn" id="ieImportBtn">Import Context</button>
+      <button class="ie-btn secondary" id="ieExportBtn">Export Chat</button>
+    </div>
+    <button class="ie-close-btn" id="ieCloseBtn">Cancel</button>
+  </div>
+</div>
+
 <!-- Drawer overlay -->
 <div class="drawer-overlay" id="drawerOverlay"></div>
 
 <!-- Drawer -->
 <div class="drawer" id="drawer">
+
+  <!-- Account -->
   <div class="drawer-account" id="drawerAccount">
+    <div class="drawer-acct-hi" id="drawerAcctHi"></div>
     <div class="drawer-acct-email" id="drawerAcctEmail"></div>
     <button class="drawer-signout-btn" id="drawerSignOutBtn">Sign Out</button>
   </div>
-  <div class="drawer-section-lbl">Briefcase</div>
+
+  <!-- Briefcases -->
+  <div class="drawer-section-lbl">Briefcases</div>
   <div id="drawerScopeList"></div>
+  <button class="drawer-item" id="drawerManageBriefcases" style="font-size:13px;color:var(--text2);padding:9px 20px">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;opacity:.5">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Add / Edit Briefcases
+  </button>
+
   <div class="drawer-sep"></div>
+
+  <!-- Chief of Staff -->
+  <div class="drawer-section-lbl">Chief of Staff</div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    Briefing<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+    Commitments<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    Decision Desk<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    Waiting-For<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    Escalation<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    Daily Closeout<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+    Source Confidence<span class="drawer-soon">Soon</span>
+  </div>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+    </svg>
+    Current Awareness<span class="drawer-soon">Soon</span>
+  </div>
+
+  <div class="drawer-sep"></div>
+
+  <!-- Settings -->
+  <div class="drawer-section-lbl">Settings</div>
+
   <button class="drawer-item" id="drawerMemory">
     <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
@@ -551,36 +682,44 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
     </svg>
     State
   </button>
+  <button class="drawer-item" id="drawerResearch">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    Research
+  </button>
   <button class="drawer-item" id="drawerImport">
     <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
       <polyline points="14 2 14 8 20 8"/>
-      <line x1="12" y1="18" x2="12" y2="12"/>
-      <line x1="9"  y1="15" x2="15" y2="15"/>
+      <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
     </svg>
-    Import
+    Import / Export
   </button>
-  <button class="drawer-item" id="drawerExport">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
-    Export
-  </button>
-  <button class="drawer-item" id="drawerResearch">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    Research
-  </button>
-  <button class="drawer-item" id="drawerTheme">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-    </svg>
-    Theme
-  </button>
+
+  <!-- Theme toggle row -->
+  <div class="drawer-theme-row" id="drawerThemeRow">
+    <div class="drawer-theme-lbl">
+      <svg class="drawer-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+      Dark Mode
+    </div>
+    <label class="tog drawer-tog" onclick="event.stopPropagation()">
+      <input type="checkbox" id="drawerThemeTog" onchange="applyTheme(this.checked)"/>
+      <div class="tog-track"></div>
+      <div class="tog-thumb"></div>
+    </label>
+  </div>
+
+  <div class="drawer-sep"></div>
+
+  <!-- About -->
+  <div class="drawer-about-row">
+    <div class="drawer-about-name">Generator Engine</div>
+    <div class="drawer-about-ver">v2.5 · Beta</div>
+  </div>
+
 </div>
 
 <div class="app">
@@ -844,6 +983,8 @@ function applyTheme(dark) {
   document.body.classList.toggle('light', !dark);
   document.documentElement.style.background = dark ? '' : '#FFFFFF';
   themeTog.checked = dark;
+  const dti = $('drawerThemeTog');
+  if (dti) dti.checked = dark;
   localStorage.setItem('ge_theme', dark ? 'dark' : 'light');
 }
 applyTheme(isDark);
@@ -1975,8 +2116,16 @@ function maybeNotify(chunk) {
 
 // ── Drawer ───────────────────────────────────────────────────
 function renderDrawerAccount() {
+  if (!currentUser) return;
   const emailEl = $('drawerAcctEmail');
-  if (emailEl && currentUser) emailEl.textContent = currentUser.email || '';
+  const hiEl    = $('drawerAcctHi');
+  if (emailEl) emailEl.textContent = currentUser.email || '';
+  if (hiEl) {
+    const name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '');
+    hiEl.textContent = name || 'Account';
+  }
+  const dti = $('drawerThemeTog');
+  if (dti) dti.checked = isDark;
 }
 
 function renderDrawerScopes() {
@@ -2015,17 +2164,13 @@ function closeDrawer() { $('drawer').classList.remove('open'); $('drawerOverlay'
 $('menuBtn').onclick       = openDrawer;
 $('drawerOverlay').onclick = closeDrawer;
 
-$('drawerSignOutBtn').onclick = () => { closeDrawer(); auth.signOut(); };
-$('drawerMemory').onclick   = () => { closeDrawer(); switchTab('memory'); };
-$('drawerSystem').onclick   = () => { closeDrawer(); switchTab('state'); };
-$('drawerImport').onclick   = () => {
-  closeDrawer(); switchTab('chat');
-  importPanel.classList.add('show');
-  importTa.focus();
-};
-$('drawerExport').onclick   = () => { closeDrawer(); exportChat(); };
-$('drawerResearch').onclick = () => { closeDrawer(); activateResearch(); };
-$('drawerTheme').onclick    = () => { closeDrawer(); applyTheme(!isDark); };
+$('drawerSignOutBtn').onclick     = () => { closeDrawer(); auth.signOut(); };
+$('drawerMemory').onclick         = () => { closeDrawer(); switchTab('memory'); };
+$('drawerSystem').onclick         = () => { closeDrawer(); switchTab('state'); };
+$('drawerResearch').onclick       = () => { closeDrawer(); activateResearch(); };
+$('drawerImport').onclick         = () => { closeDrawer(); openIEModal(); };
+$('drawerManageBriefcases').onclick = () => { closeDrawer(); openBizModal(null); };
+$('drawerThemeRow').onclick       = () => applyTheme(!isDark);
 
 function exportChat() {
   if (!messages.length) { toast('No messages to export'); return; }
@@ -2037,6 +2182,18 @@ function exportChat() {
   a.click(); URL.revokeObjectURL(url);
   toast('Chat exported');
 }
+
+// ── Import / Export modal ─────────────────────────────
+function openIEModal()  { $('ieModal').classList.remove('hidden'); }
+function closeIEModal() { $('ieModal').classList.add('hidden'); }
+$('ieCloseBtn').onclick = closeIEModal;
+$('ieModal').addEventListener('click', e => { if (e.target === $('ieModal')) closeIEModal(); });
+$('ieImportBtn').onclick = () => {
+  closeIEModal(); switchTab('chat');
+  importPanel.classList.add('show');
+  importTa.focus();
+};
+$('ieExportBtn').onclick = () => { closeIEModal(); exportChat(); };
 
 function activateResearch() {
   switchTab('chat');
