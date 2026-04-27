@@ -1135,13 +1135,10 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   // Build user content (text or text+image or text+attachment)
   let userContent;
   if (image) {
-    const mediaType = image.startsWith('data:image/png') ? 'image/png'
-      : image.startsWith('data:image/gif') ? 'image/gif'
-      : image.startsWith('data:image/webp') ? 'image/webp'
-      : 'image/jpeg';
+    // OpenRouter uses OpenAI-compatible API — image_url format required (not Anthropic native source format)
     userContent = [
-      { type: 'image', source: { type: 'base64', media_type: mediaType, data: image.replace(/^data:[^;]+;base64,/, '') } },
-      { type: 'text', text: cleanMessage },
+      { type: 'image_url', image_url: { url: image } },
+      { type: 'text', text: cleanMessage || 'What is in this image?' },
     ];
   } else if (attachment_url) {
     userContent = cleanMessage
@@ -1236,7 +1233,10 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   if (!upstream.ok) {
     const errBody = await upstream.text().catch(() => '');
     console.error(`[ge-ai] OpenRouter error ${upstream.status}: ${errBody.substring(0, 200)}`);
-    return sseErrorResponse('GE encountered an error — please try again.', sessionId, validatedIntent, validatedModel, validatedScope, 'provider_error');
+    const errMsg = image
+      ? 'Image received but could not be read — please try a different image or format.'
+      : 'GE encountered an error — please try again.';
+    return sseErrorResponse(errMsg, sessionId, validatedIntent, validatedModel, validatedScope, 'provider_error');
   }
 
   // Pipe SSE chunks to frontend via TransformStream
