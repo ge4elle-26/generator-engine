@@ -786,7 +786,7 @@ async function handleChat(request, env, ctx) {
     return errorResponse('Invalid JSON body');
   }
 
-  const { message, session_id, max_tokens, image, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp } = body;
+  const { message, session_id, max_tokens, image, attachment_url, attachment_name, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp } = body;
   if (!message || typeof message !== 'string')
     return errorResponse('message (string) is required');
 
@@ -979,7 +979,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
   systemSections.push(`# Session\nID: ${sessionId} | Conv: ${conversationId} | Date (Manila): ${date} | Model: ${validatedModel} | Intent: ${validatedIntent} | Scope: ${validatedScope}${mode ? ` | Mode: ${mode}` : ''}`);
   const systemPrompt = systemSections.join('\n\n');
 
-  // Build user content (text or text+image)
+  // Build user content (text or text+image or text+attachment)
   let userContent;
   if (image) {
     const mediaType = image.startsWith('data:image/png') ? 'image/png'
@@ -990,6 +990,10 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
       { type: 'image', source: { type: 'base64', media_type: mediaType, data: image.replace(/^data:[^;]+;base64,/, '') } },
       { type: 'text', text: cleanMessage },
     ];
+  } else if (attachment_url) {
+    userContent = cleanMessage
+      ? `${cleanMessage}\n\n[Attached file: ${attachment_name || 'file'} — ${attachment_url}]`
+      : `[Attached file: ${attachment_name || 'file'} — ${attachment_url}]`;
   } else {
     userContent = cleanMessage;
   }
@@ -1159,10 +1163,13 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
       await Promise.all([
         db.add(`sessions/${sessionId}/messages`, {
           role: 'user',
-          content: image ? `[📷 image attached] ${cleanMessage}` : cleanMessage,
+          content: image ? `[📷 image attached] ${cleanMessage}` : attachment_url ? `[📎 ${attachment_name || 'file'} attached] ${cleanMessage}` : cleanMessage,
           createdAt: now, sessionId, conversationId,
           model: validatedModel, intent: validatedIntent, scope: validatedScope,
           think_mode: mode === 'think', has_image: !!image,
+          has_attachment: !!attachment_url,
+          attachment_url: attachment_url || null,
+          attachment_name: attachment_name || null,
           user_id: user.uid,
           ...(imageSmall ? { image_data: image } : {}),
         }),
@@ -1716,6 +1723,43 @@ async function handleCreateMemoryProposal(request, env) {
   return jsonResponse({ id, status: 'pending' });
 }
 
+// POST /attachment — saves file attachment metadata to users/{uid}/attachments
+async function handleSaveAttachment(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let body;
+  try { body = await request.json(); } catch { return errorResponse('Invalid JSON body'); }
+  const { name, type, size, storageUrl, storagePath } = body;
+  if (!name || !storageUrl) return errorResponse('name and storageUrl are required');
+  const db = await initFirestore(env);
+  const now = new Date().toISOString();
+  const id = await db.add(`users/${user.uid}/attachments`, {
+    name:        name,
+    type:        type || 'application/octet-stream',
+    size:        size || 0,
+    storageUrl:  storageUrl,
+    storagePath: storagePath || '',
+    created_at:  now,
+    user_id:     user.uid,
+  });
+  return jsonResponse({ id, created_at: now });
+}
+
+// GET /attachments — list file attachments for the authenticated user
+async function handleListAttachments(request, env) {
+  const { user, authError } = await requireAuth(request, env);
+  if (authError) return authError;
+  let items = [];
+  try {
+    const db = await initFirestore(env);
+    items = await db.query(`users/${user.uid}`, 'attachments', { limit: 100 }).catch(() => []);
+  } catch (e) {
+    console.error('[ge-ai] handleListAttachments Firestore error:', e.message);
+  }
+  items.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  return jsonResponse({ count: items.length, items });
+}
+
 // GET /review — returns pending import proposals for the authenticated user
 // No Firestore filter: fetches all docs from users/{uid}/memory_proposals and filters in JS.
 // Avoids 400 errors when Firestore auto-indexes don't exist for new/empty collections.
@@ -1924,6 +1968,8 @@ export default {
       if (pathname === '/import' && method === 'POST') return await handleImport(request, env);
       if (pathname === '/save'   && method === 'POST') return await handleSave(request, env);
       if (pathname === '/memory' && method === 'POST') return await handleCreateMemoryProposal(request, env);
+      if (pathname === '/attachment'  && method === 'POST') return await handleSaveAttachment(request, env);
+      if (pathname === '/attachments' && method === 'GET')  return await handleListAttachments(request, env);
       if (pathname === '/review' && method === 'GET')  return await handleReview(request, env);
       if (pathname === '/admin/approve-memory' && method === 'POST') return await handleApproveMemory(request, env);
       if (pathname === '/admin/seed' && method === 'POST') return await handleAdminSeed(request, env);

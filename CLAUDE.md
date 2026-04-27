@@ -30,7 +30,18 @@ Session 4 — Bug Fix Pass (2026-04-27):
 - Bug 2 fixed: actProposeMemory was calling POST /save (bypasses review queue). Added POST /memory route (handleCreateMemoryProposal) that writes to users/{uid}/memory_proposals for pending review. Added saveMemory() function in index.html. actProposeMemory now calls saveMemory(). handleRecallMemory now has try-catch around initFirestore + .catch(() => []) on db.query.
 - Bug 3 fixed: handleReview had no try-catch around initFirestore — any Firestore init failure returned 500, triggering loadReview() catch block ("Could not load proposals."). Wrapped in try-catch; now returns { count:0, items:[] } on Firestore error instead of 500.
 
-Next: Session 5 — TBD.
+Session 5 — Attachment System Phase 5.5 (2026-04-27):
+- imageInput accept extended: image/*, PDF, text/*, .doc/.docx/.xlsx/.csv
+- Images: existing base64 inline flow unchanged (imgBar preview)
+- Non-images: fileAttach state, attachChip preview chip above composer, Storage upload on send
+- uploadToStorage(): POST to Firebase Storage REST API using user ID token (not service account)
+- Storage path: users/{uid}/attachments/{timestamp}_{filename}
+- saveAttachmentMeta(): POST /attachment → Firestore users/{uid}/attachments
+- attachment_url + attachment_name included in /chat body → AI receives [Attached file: name — url]
+- renderMsg(): msg.attachment chip (.msg-attach-chip) below user bubble with tap-to-open link
+- loadMemory(): Attachments section added (GET /attachments), filename + date + Open link
+- worker.js: handleSaveAttachment (POST /attachment), handleListAttachments (GET /attachments)
+- Both routes registered in router
 
 ## Stack
 - Frontend: Cloudflare Pages (generator-engine.pages.dev)

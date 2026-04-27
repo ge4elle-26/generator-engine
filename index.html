@@ -209,6 +209,19 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .img-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0}
 .img-fname{flex:1;font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .img-rm{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
+
+/* ── Attachment chip (non-image file preview) ─── */
+.attach-chip{display:none;align-items:center;gap:10px;margin-bottom:8px;background:var(--card);border-radius:12px;padding:8px 12px}
+.attach-chip.show{display:flex}
+.attach-chip-icon{font-size:18px;flex-shrink:0}
+.attach-chip-name{flex:1;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attach-chip-rm{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
+/* ── Attachment link chip in message bubble ── */
+.msg-attach-chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;background:var(--card);border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;max-width:82%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-attach-chip:hover{opacity:.8}
+body.light .attach-chip{background:#F2F2F7}
+body.light .msg-attach-chip{background:#F2F2F7;color:#1C1C1E}
+
 .input-row{display:flex;align-items:flex-end;gap:8px;background:#1C1C1E;border-radius:26px;padding:10px 8px 10px 18px;box-shadow:0 2px 20px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07)}
 textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px}
 textarea.composer::placeholder{color:var(--text2)}
@@ -592,6 +605,11 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
         <span class="img-fname" id="imgFname"></span>
         <button class="img-rm" id="imgRm">✕</button>
       </div>
+      <div class="attach-chip" id="attachChip">
+        <span class="attach-chip-icon">📎</span>
+        <span class="attach-chip-name" id="attachChipName"></span>
+        <button class="attach-chip-rm" id="attachChipRm">✕</button>
+      </div>
       <div class="input-row">
         <button class="attach-btn" id="importBtn" title="Import context">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -744,7 +762,7 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="imageInput" accept="image/*" style="display:none"/>
+<input type="file" id="imageInput" accept="image/*,application/pdf,text/*,.doc,.docx,.xlsx,.csv" style="display:none"/>
 
 <script>
 const WORKER = 'https://ge-ai.grdrys26.workers.dev';
@@ -771,8 +789,9 @@ async function authFetch(url, opts = {}) {
 let sessionId = null;
 let scope     = localStorage.getItem('ge_scope') || 'global';
 let messages  = [];
-let attached  = null;
-let busy      = false;
+let attached   = null;
+let fileAttach = null;
+let busy       = false;
 
 // ── DOM shortcuts ─────────────────────────────────────────────
 const $           = id => document.getElementById(id);
@@ -784,7 +803,10 @@ const imageInput  = $('imageInput');
 const imgBar      = $('imgBar');
 const imgThumb    = $('imgThumb');
 const imgFname    = $('imgFname');
-const imgRm       = $('imgRm');
+const imgRm          = $('imgRm');
+const attachChip     = $('attachChip');
+const attachChipName = $('attachChipName');
+const attachChipRm   = $('attachChipRm');
 const themeBtn    = $('themeBtn');
 const themeTog    = $('themeTog');
 const sessDisplay = $('sessDisplay');
@@ -1144,23 +1166,33 @@ $('importApply').onclick = () => {
   toast('Context attached — send your message');
 };
 
-// ── Image attach ──────────────────────────────────────────────
+// ── File / Image attach ───────────────────────────────────────
 attachBtn.onclick = () => imageInput.click();
 imageInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
-  if (f.size > 4 * 1024 * 1024) { toast('Image too large (max 4MB)'); imageInput.value = ''; return; }
-  const r = new FileReader();
-  r.onload = ev => {
-    attached = { base64: ev.target.result, name: f.name };
-    imgThumb.src = ev.target.result;
-    imgFname.textContent = f.name;
-    imgBar.classList.add('show');
+  if (f.size > 20 * 1024 * 1024) { toast('File too large (max 20MB)'); imageInput.value = ''; return; }
+  const isImage = f.type.startsWith('image/');
+  if (isImage) {
+    if (f.size > 4 * 1024 * 1024) { toast('Image too large (max 4MB)'); imageInput.value = ''; return; }
+    const r = new FileReader();
+    r.onload = ev => {
+      attached = { base64: ev.target.result, name: f.name };
+      imgThumb.src = ev.target.result;
+      imgFname.textContent = f.name;
+      imgBar.classList.add('show');
+      imageInput.value = '';
+    };
+    r.readAsDataURL(f);
+  } else {
+    fileAttach = { file: f, name: f.name, type: f.type, size: f.size };
+    attachChipName.textContent = f.name;
+    attachChip.classList.add('show');
     imageInput.value = '';
-  };
-  r.readAsDataURL(f);
+  }
 });
 imgRm.onclick = () => { attached = null; imgBar.classList.remove('show'); };
+attachChipRm.onclick = () => { fileAttach = null; attachChip.classList.remove('show'); };
 
 // ── Render message bubble ─────────────────────────────────────
 function renderMsg(msg, idx) {
@@ -1226,6 +1258,15 @@ function renderMsg(msg, idx) {
     bbl.className = 'bubble user-bbl';
     bbl.textContent = msg.text;
     wrap.appendChild(bbl);
+    if (msg.attachment?.url) {
+      const chip = document.createElement('a');
+      chip.className = 'msg-attach-chip';
+      chip.href = msg.attachment.url;
+      chip.target = '_blank';
+      chip.rel = 'noopener noreferrer';
+      chip.textContent = `📎 ${msg.attachment.name}`;
+      wrap.appendChild(chip);
+    }
   }
   return wrap;
 }
@@ -1284,17 +1325,22 @@ function loadLocal()  { try { messages = JSON.parse(localStorage.getItem(`ge_msg
 // ── Send ──────────────────────────────────────────────────────
 async function send() {
   const text = composer.value.trim();
-  if ((!text && !attached) || busy) return;
+  if ((!text && !attached && !fileAttach) || busy) return;
 
   const img = attached;
   attached = null;
   imgBar.classList.remove('show');
 
+  const fa = fileAttach;
+  fileAttach = null;
+  attachChip.classList.remove('show');
+
   const ctx = importContext;
   if (ctx) { importContext = ''; importTa.value = ''; importBtn.classList.remove('context-on'); }
   const messageToSend = ctx ? `[Context]\n${ctx}\n\n[Message]\n${text}` : text;
 
-  messages.push({ role: 'user', text: img ? `📷 ${img.name}${text ? '\n' + text : ''}` : text });
+  const userMsgIdx = messages.length;
+  messages.push({ role: 'user', text: fa ? `📎 ${fa.name}${text ? '\n' + text : ''}` : img ? `📷 ${img.name}${text ? '\n' + text : ''}` : text });
   saveLocal();
   renderAll();
   composer.value = ''; grow();
@@ -1323,6 +1369,19 @@ async function send() {
   try {
     const body = { message: messageToSend || '', session_id: sessionId, scope, client_timestamp: new Date().toISOString() };
     if (img) body.image = img.base64;
+
+    if (fa && currentUserId) {
+      try {
+        const { storageUrl, storagePath } = await uploadToStorage(fa.file, currentUserId);
+        body.attachment_url  = storageUrl;
+        body.attachment_name = fa.name;
+        if (messages[userMsgIdx]) messages[userMsgIdx].attachment = { name: fa.name, url: storageUrl };
+        saveLocal();
+        saveAttachmentMeta(fa.name, fa.type, fa.size, storageUrl, storagePath).catch(() => {});
+      } catch {
+        toast('File upload failed — sending without attachment');
+      }
+    }
 
     const res = await authFetch(`${WORKER}/chat`, {
       method: 'POST',
@@ -1610,9 +1669,10 @@ async function loadMemory() {
   memList.appendChild(loading);
 
   try {
-    const [reviewRes, recallRes] = await Promise.all([
+    const [reviewRes, recallRes, attachRes] = await Promise.all([
       authFetch(`${WORKER}/review`),
       authFetch(`${WORKER}/recall?limit=50`),
+      authFetch(`${WORKER}/attachments`),
     ]);
 
     memList.innerHTML = '';
@@ -1641,6 +1701,46 @@ async function loadMemory() {
       memList.appendChild(empty);
     } else {
       memories.forEach(m => memList.appendChild(buildMemItem(m, false)));
+    }
+
+    // Attachments section
+    const attachments = attachRes.ok ? (await attachRes.json()).items || [] : [];
+    memList.appendChild(memSectionHdr(`Attachments (${attachments.length})`));
+    if (attachments.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'mem-item';
+      empty.style.cssText = 'color:var(--text2);font-size:14px;padding:16px 20px';
+      empty.textContent = 'No attachments yet.';
+      memList.appendChild(empty);
+    } else {
+      attachments.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'mem-item';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'mem-item-text';
+        nameEl.textContent = a.name;
+        item.appendChild(nameEl);
+        const foot = document.createElement('div');
+        foot.className = 'mem-item-foot';
+        if (a.created_at) {
+          const ts = document.createElement('span');
+          ts.className = 'mem-item-time';
+          ts.textContent = memDateStr(a.created_at);
+          foot.appendChild(ts);
+        }
+        if (a.storageUrl) {
+          const link = document.createElement('a');
+          link.className = 'mem-approve-btn';
+          link.style.cssText = 'text-decoration:none;display:inline-block';
+          link.href = a.storageUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Open';
+          foot.appendChild(link);
+        }
+        item.appendChild(foot);
+        memList.appendChild(item);
+      });
     }
   } catch {
     memList.innerHTML = '';
@@ -1835,6 +1935,33 @@ async function saveMemory(content, scopeOverride) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content: content.trim(), scope: scopeOverride || scope }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Storage upload helpers ────────────────────────────────────
+async function uploadToStorage(file, uid) {
+  const token = await getToken();
+  const bucket = 'generator-engine-ge-brain-mem.appspot.com';
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storagePath = `users/${uid}/attachments/${Date.now()}_${safeName}`;
+  const encodedPath = encodeURIComponent(storagePath);
+  const res = await fetch(
+    `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodedPath}`,
+    { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', Authorization: `Bearer ${token}` }, body: file }
+  );
+  if (!res.ok) throw new Error(`Storage upload failed: ${res.status}`);
+  const data = await res.json();
+  const storageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media&token=${data.downloadTokens}`;
+  return { storageUrl, storagePath };
+}
+
+async function saveAttachmentMeta(name, type, size, storageUrl, storagePath) {
+  const res = await authFetch(`${WORKER}/attachment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, type, size, storageUrl, storagePath }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
