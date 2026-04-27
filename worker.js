@@ -598,15 +598,19 @@ async function compressHistory(apiKey, messages) {
   }
 }
 
-// Session 9: Auto-extract meaningful context from a single exchange and save directly to Brain Memory
-async function autoExtractAndSaveMemory(apiKey, db, userMessage, aiResponse, scope, uid, date) {
+// Session 9 (safe): Auto-extract context → staging collection users/{uid}/memory_updates only.
+// Nothing is written to users/{uid}/memory, memory_core, or any canonical collection.
+// High-impact items (prices, rules, decisions, commitments) get status=auto_saved_pending_review.
+// Low-risk items (preferences, context) get status=working. Review tab handles promotion.
+const AUTO_HIGH_IMPACT_TYPES = new Set(['decision', 'rule', 'commitment', 'price']);
+async function autoExtractAndSaveMemory(apiKey, db, userMessage, aiResponse, scope, uid, sessionId) {
   const exchange = `User: ${userMessage.substring(0, 600)}\n\nGE: ${aiResponse.substring(0, 1000)}`;
   try {
     const res = await callClaude(apiKey, {
       model: MODELS.BACKGROUND,
-      system: `Extract ALL meaningful context from this conversation exchange as a JSON array. Extract: decisions made, prices or numbers mentioned, products or items discussed, rules or instructions given, commitments stated, business context shared, preferences expressed. Each item must be one distinct piece of information — split merged facts into separate items. Return ONLY a valid JSON array with no markdown, no code blocks, no explanation:
-[{"type":"fact|decision|rule|preference|business_info","content":"full text of this single item"}]
-If there is truly nothing meaningful to extract, return: []`,
+      system: `Extract meaningful context from this conversation exchange as a JSON array. Use these types: decision, rule, commitment, preference, business_fact, price, product, task, context. Assign impact: high for prices/rules/decisions/commitments/supplier facts/margin rules, medium for products/tasks/business facts, low for preferences/general context. Return ONLY a valid JSON array, no markdown, no explanation:
+[{"type":"decision|rule|commitment|preference|business_fact|price|product|task|context","impact":"high|medium|low","confidence":0.9,"text":"exact extracted text"}]
+If nothing meaningful to extract, return: []`,
       messages: [{ role: 'user', content: exchange }],
       maxTokens: 800,
     });
@@ -617,25 +621,38 @@ If there is truly nothing meaningful to extract, return: []`,
     if (!Array.isArray(items) || items.length === 0) return;
     const now = new Date().toISOString();
     const saves = items
-      .filter(item => typeof item.content === 'string' && item.content.trim().length > 15)
+      .filter(item => typeof item.text === 'string' && item.text.trim().length > 15)
       .slice(0, 10)
-      .map(item =>
-        db.add(`users/${uid}/memory`, {
-          content:    item.content.trim(),
-          type:       item.type || 'fact',
-          title:      item.content.trim().substring(0, 60),
-          scope,
-          source:     'auto',
+      .map(item => {
+        const text = item.text.trim();
+        const impact = item.impact || (AUTO_HIGH_IMPACT_TYPES.has(item.type) ? 'high' : 'medium');
+        const status = (impact === 'high' || AUTO_HIGH_IMPACT_TYPES.has(item.type))
+          ? 'auto_saved_pending_review'
+          : 'working';
+        const normalizedText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').substring(0, 100);
+        const duplicateKey = `${uid}:${scope}:${normalizedText}`;
+        // Safe staging collection — never touches users/{uid}/memory or memory_core
+        return db.add(`users/${uid}/memory_updates`, {
           uid,
-          created_at: now,
-          status:     'active',
-        }).catch(e => console.error('[ge-ai] auto-memory item save failed:', e.message))
-      );
+          sessionId,
+          scope,
+          type:             item.type || 'context',
+          impact,
+          confidence:       typeof item.confidence === 'number' ? item.confidence : 0.75,
+          text,
+          normalizedText,
+          sourceMessageIds: [],
+          source:           'auto_memory_extraction',
+          status,
+          createdAt:        now,
+          lastSeenAt:       now,
+          duplicateKey,
+        }).catch(e => console.error('[ge-ai] memory_updates write failed:', e.message));
+      });
     await Promise.all(saves);
-    invalidateScopeCache(`${uid}:${scope}`);
-    console.log(`[ge-ai] auto-memory: saved ${saves.length} items uid=${uid} scope=${scope}`);
+    console.log(`[ge-ai] auto-memory: staged ${saves.length} items → memory_updates uid=${uid} scope=${scope}`);
   } catch (e) {
-    console.error('[ge-ai] autoExtractAndSaveMemory failed:', e.message);
+    console.error('[ge-ai] autoExtractAndSaveMemory failed (non-blocking):', e.message);
   }
 }
 
@@ -1357,26 +1374,32 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
       console.error('[ge-ai] Runtime log write failed:', logErr.message);
     }
 
-    // Session 9: Auto-extract context from this exchange → Brain Memory (silent, no user action needed)
+    // Session 9 (safe): Auto-extract context → users/{uid}/memory_updates only (never canonical memory)
     if (responseStatus === 'ok' && cleanMessage && fullText) {
-      autoExtractAndSaveMemory(env.OPENROUTER_API_KEY, db, cleanMessage, fullText, validatedScope, user.uid, date)
+      autoExtractAndSaveMemory(env.OPENROUTER_API_KEY, db, cleanMessage, fullText, validatedScope, user.uid, sessionId)
         .catch(e => console.error('[ge-ai] auto-memory pipeline failed:', e.message));
     }
 
-    // Session 9: Save sliding-window compression summary to Brain Memory so nothing is ever lost
+    // Session 9 (safe): Save compression summary → users/{uid}/memory_updates (never users/{uid}/memory)
     if (historyCompressionSummary && olderMessages.length > 0) {
       const compKey = `${sessionId}_comp_${olderMessages.length}`;
-      db.set(`users/${user.uid}/memory`, compKey, {
-        content:    historyCompressionSummary,
-        type:       'fact',
-        title:      `Compressed history ${date} (${olderMessages.length} msgs)`,
-        scope:      validatedScope,
-        source:     'compressed_history',
-        uid:        user.uid,
-        created_at: new Date().toISOString(),
-        status:     'active',
+      const compNorm = historyCompressionSummary.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').substring(0, 100);
+      db.set(`users/${user.uid}/memory_updates`, compKey, {
+        uid:              user.uid,
+        sessionId,
+        scope:            validatedScope,
+        type:             'context',
+        impact:           'medium',
+        confidence:       1.0,
+        text:             historyCompressionSummary,
+        normalizedText:   compNorm,
+        sourceMessageIds: [],
+        source:           'compressed_history',
+        status:           'auto_saved_pending_review',
+        createdAt:        new Date().toISOString(),
+        lastSeenAt:       new Date().toISOString(),
+        duplicateKey:     `${user.uid}:${validatedScope}:${compKey}`,
       }).catch(e => console.error('[ge-ai] compression summary save failed:', e.message));
-      invalidateScopeCache(`${user.uid}:${validatedScope}`);
     }
   };
 
