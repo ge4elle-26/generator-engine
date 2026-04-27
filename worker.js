@@ -1014,7 +1014,7 @@ async function handleChat(request, env, ctx) {
   } else {
     model = routeModel(mode, intent, model_preference);
   }
-  if (image && model === MODELS.BACKGROUND) model = MODELS.DEFAULT;
+  if (image && (model === MODELS.BACKGROUND || model === MODELS.THINK)) model = MODELS.DEFAULT;
 
   // Phase 4: Normalize to safe defaults — never let a bad value break the pipeline
   const validatedIntent = VALID_INTENTS.has(intent) ? intent : 'fallback';
