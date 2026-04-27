@@ -1026,7 +1026,7 @@ async function handleChat(request, env, ctx) {
     const earlyPayload = { session_id: sessionId, scope: validatedScope, active_model: validatedModel, updated_at: new Date().toISOString() };
     db.set('users', user.uid, earlyPayload)
       .catch(e => console.error('[ge-ai] active_model early write failed:', e.message));
-    db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', earlyPayload)
+    db.set(`users/${user.uid}/scopes`, validatedScope, earlyPayload)
       .catch(e => console.error('[ge-ai] scope session early write failed:', e.message));
   }
   if (validatedIntent !== intent || !validatedScope || !model) {
@@ -1198,7 +1198,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         const debateSessionPayload = { session_id: sessionId, scope: validatedScope, active_model: stickyModel || null, updated_at: new Date().toISOString() };
         await db.set('users', user.uid, debateSessionPayload)
           .catch(e => console.error('[ge-ai] debate user session save failed:', e.message));
-        await db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', debateSessionPayload)
+        await db.set(`users/${user.uid}/scopes`, validatedScope, debateSessionPayload)
           .catch(e => console.error('[ge-ai] debate scope session save failed:', e.message));
       } catch (e) {
         console.error('[ge-ai] debate mode failed:', e.message);
@@ -1358,7 +1358,7 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
     }
     // Per-scope session record — cross-device scope chatroom continuity
     try {
-      await db.set(`users/${user.uid}/scopes/${validatedScope}`, 'session', sessionPayload);
+      await db.set(`users/${user.uid}/scopes`, validatedScope, sessionPayload);
     } catch (e) {
       console.error('[ge-ai] scope session save failed:', e.message);
     }
@@ -2132,7 +2132,7 @@ async function handleScopeSession(request, env) {
   const url = new URL(request.url);
   const scope = url.searchParams.get('scope') || 'global';
   const db = await initFirestore(env);
-  const data = await db.get(`users/${user.uid}/scopes/${scope}`, 'session').catch(() => null);
+  const data = await db.get(`users/${user.uid}/scopes`, scope).catch(() => null);
 
   if (!data?.session_id) return jsonResponse({ active: false, scope });
   return jsonResponse({ active: true, scope, session_id: data.session_id, active_model: data.active_model || null });

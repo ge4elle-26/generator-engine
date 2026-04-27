@@ -1042,14 +1042,14 @@ function summarizeCurrentSession() {
 }
 
 async function loadScopeSession(s) {
-  if (!currentUser) return;
+  if (!currentUser) return null;
   const targetScope = s;
   try {
     const res = await authFetch(`${WORKER}/scope-session?scope=${encodeURIComponent(s)}`);
-    if (!res.ok) return;
+    if (!res.ok) return false; // network / auth error — genuine failure
     const data = await res.json();
-    if (!data.active || !data.session_id) return;
-    if (scope !== targetScope) return; // scope changed while awaiting
+    if (!data.active || !data.session_id) return null; // no prior session — not an error
+    if (scope !== targetScope) return null; // scope changed while awaiting
     sessionId = data.session_id;
     sessDisplay.textContent = data.session_id;
     if (data.active_model) {
@@ -1081,7 +1081,11 @@ async function loadScopeSession(s) {
         }
       }
     }
-  } catch {}
+    return true;
+  } catch (e) {
+    console.warn('[ge] loadScopeSession failed:', e.message);
+    return false; // exception — genuine failure
+  }
 }
 
 function applyScope(s) {
@@ -2300,7 +2304,13 @@ async function boot() {
   loadLocal();
   renderAll();
   checkHealth();
-  await loadScopeSession(scope);
+  const sessionLoadResult = await loadScopeSession(scope);
+  if (sessionLoadResult === false && messages.length === 0) {
+    const fbDiv = document.createElement('div');
+    fbDiv.className = 'msg assistant';
+    fbDiv.innerHTML = '<div class="bubble ai-bbl">Previous session could not be loaded. Send a message to start a new session.</div>';
+    thread.appendChild(fbDiv);
+  }
   checkPendingCount();
   loadTodos();
   if ('Notification' in window && Notification.permission === 'default') {
