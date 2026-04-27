@@ -57,6 +57,97 @@ function base64url(buffer) {
     .replace(/\//g, '_');
 }
 
+// ── Web Push helpers (RFC 8291 / RFC 8292) ─────────────────────────────────
+
+function wpB64Decode(s) {
+  return Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+}
+
+function wpB64Encode(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+async function wpHkdf(salt, ikm, info, length) {
+  const infoBytes = info instanceof Uint8Array ? info : new TextEncoder().encode(info);
+  const saltKey = await crypto.subtle.importKey('raw', salt, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const prk = new Uint8Array(await crypto.subtle.sign('HMAC', saltKey, ikm));
+  const prkKey = await crypto.subtle.importKey('raw', prk, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const t = new Uint8Array(infoBytes.length + 1);
+  t.set(infoBytes);
+  t[infoBytes.length] = 0x01;
+  const okm = new Uint8Array(await crypto.subtle.sign('HMAC', prkKey, t));
+  return okm.slice(0, length);
+}
+
+async function webPushEncrypt(plaintext, subscription) {
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const authSecret = wpB64Decode(subscription.keys.auth);
+  const uaPubRaw   = wpB64Decode(subscription.keys.p256dh);
+
+  const asKeyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
+  const asPubRaw  = new Uint8Array(await crypto.subtle.exportKey('raw', asKeyPair.publicKey));
+
+  const uaPubKey = await crypto.subtle.importKey('raw', uaPubRaw, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+  const ecdhBits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: uaPubKey }, asKeyPair.privateKey, 256));
+
+  const keyInfo = new Uint8Array(14 + 65 + 65);
+  keyInfo.set(enc.encode('WebPush: info\x00'), 0);
+  keyInfo.set(uaPubRaw, 14);
+  keyInfo.set(asPubRaw, 14 + 65);
+
+  const ikm   = await wpHkdf(authSecret, ecdhBits, keyInfo, 32);
+  const cek   = await wpHkdf(salt, ikm, enc.encode('Content-Encoding: aes128gcm\x00'), 16);
+  const nonce = await wpHkdf(salt, ikm, enc.encode('Content-Encoding: nonce\x00'), 12);
+
+  const plainBytes = enc.encode(plaintext);
+  const padded = new Uint8Array(plainBytes.length + 1);
+  padded.set(plainBytes);
+  padded[plainBytes.length] = 0x02;
+
+  const aesKey = await crypto.subtle.importKey('raw', cek, { name: 'AES-GCM' }, false, ['encrypt']);
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, tagLength: 128 }, aesKey, padded));
+
+  const header = new Uint8Array(21 + 65);
+  header.set(salt, 0);
+  new DataView(header.buffer).setUint32(16, 4096, false);
+  header[20] = 65;
+  header.set(asPubRaw, 21);
+
+  const body = new Uint8Array(header.length + ciphertext.length);
+  body.set(header);
+  body.set(ciphertext, header.length);
+  return body;
+}
+
+async function buildVapidJwt(privateKeyJwk, audience, subject) {
+  const privKey = await crypto.subtle.importKey('jwk', privateKeyJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const exp = Math.floor(Date.now() / 1000) + 12 * 3600;
+  const hdr64 = btoa(JSON.stringify({ typ: 'JWT', alg: 'ES256' })).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const pay64 = btoa(JSON.stringify({ aud: audience, exp, sub: subject })).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const sigInput = `${hdr64}.${pay64}`;
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privKey, new TextEncoder().encode(sigInput));
+  const sig64 = wpB64Encode(sig);
+  return `${sigInput}.${sig64}`;
+}
+
+async function sendWebPush(subscription, payloadObj, vapidPrivKeyJwk, vapidPubKey, vapidSubject) {
+  const endpoint = subscription.endpoint;
+  const audience = new URL(endpoint).origin;
+  const jwt = await buildVapidJwt(vapidPrivKeyJwk, audience, vapidSubject);
+  const encrypted = await webPushEncrypt(JSON.stringify(payloadObj), subscription);
+  return fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization':    `vapid t=${jwt},k=${vapidPubKey}`,
+      'Content-Type':     'application/octet-stream',
+      'Content-Encoding': 'aes128gcm',
+      'TTL':              '86400',
+    },
+    body: encrypted,
+  });
+}
+
 function encodeJSON(obj) {
   return base64url(new TextEncoder().encode(JSON.stringify(obj)));
 }
@@ -458,6 +549,22 @@ async function withRetry(fn, retries = 1, delayMs = 500) {
     await new Promise(r => setTimeout(r, delayMs));
     return withRetry(fn, retries - 1, delayMs);
   }
+}
+
+// Strip markdown formatting from response text before sending to frontend
+function stripMarkdownForDisplay(text) {
+  if (!text) return text;
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/gs, '$1')
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/\*(.+?)\*/gs, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/```[\s\S]*?```/g, m => m.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, ''))
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*\d+\.\s+/gm, (m) => m)
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // Returns true if the response text contains action items, decisions, or follow-ups worth notifying about
@@ -902,16 +1009,16 @@ GE never introduces itself as GPT, Claude, or Gemini. GE never reveals the under
 GE never says "as an AI" or any variation of it.
 GE tone is direct, calm, consultant-grade, and context-aware at all times.
 
+## Formatting Rules — Non-Negotiable
+Never use markdown formatting of any kind. No asterisks for bold or italic. No pound signs for headers. No dashes or asterisks for bullet points. No backticks. No markdown tables. Write in clean plain prose only. If you need to list items, write them as numbered sentences or comma-separated inline. Every response must read as natural spoken language, not a formatted document.
+
 ## Behavior Rules
 
 FOCUS LOCK: Stay on the current topic. If the conversation begins to drift, immediately flag it: "We're moving away from [topic]. Continue there or stay focused?" — then wait for Gerald's direction before proceeding.
 
 NO UNSOLICITED SUGGESTIONS: Respond only to what was explicitly asked. Do not expand scope, add tangential options, or volunteer unrequested alternatives.
 
-AUTO RESPONSE CALIBRATION:
-- Short factual question → answer in 1–2 sentences, no elaboration.
-- Decision or strategy question → ask "Quick take or full breakdown?" before answering.
-- Complex multi-part question → go deep automatically, no prompt needed.
+AUTO RESPONSE CALIBRATION: Short factual question — answer in 1 to 2 sentences, no elaboration. Decision or strategy question — ask "Quick take or full breakdown?" before answering. Complex multi-part question — go deep automatically, no prompt needed.
 
 ESCALATION TRIGGER: If the answer is quick but the topic involves money, legal exposure, or an irreversible action, append exactly: "This has risk — want a deeper look?" Do not elaborate unsolicited.
 
@@ -930,23 +1037,11 @@ Models: claude-opus-4-7 (/deep) · claude-sonnet-4-6 (chat/execute) · gpt-5.4 (
 
   if (mode === 'think') {
     systemSections.push(`# Think Mode — Socratic Reasoning Partner
-You are in Think Mode. Your job is NOT to give answers — it is to help Gerald think.
-1. Ask 1–3 focused clarifying questions that expose hidden assumptions or trade-offs
-2. Do NOT offer a recommendation or solution yet
-3. Mirror back what you heard to confirm understanding
-4. If the situation is clear, surface the single most important question he hasn't asked himself
-5. Short responses only — this is a dialogue, not a monologue
+You are in Think Mode. Your job is NOT to give answers — it is to help Gerald think. Ask 1 to 3 focused clarifying questions that expose hidden assumptions or trade-offs. Do NOT offer a recommendation or solution yet. Mirror back what you heard to confirm understanding. If the situation is clear, surface the single most important question he hasn't asked himself. Short responses only — this is a dialogue, not a monologue. No markdown, no lists, plain prose only.
 Tone: curious, direct, no filler.`);
   } else {
     systemSections.push(`# Execute Mode — Thinking Partner Behavior
-You are Gerald's thinking partner, not a fact lookup. When answering:
-1. Lead with the direct answer first — always, no preamble
-2. Add ONE useful line of context or connection to his business
-3. When relevant, offer a specific proactive next step (e.g. "Want me to calculate today's pricing?")
-4. If a question touches multiple businesses or rules, connect the dots
-5. NEVER end with generic fluff like "Is there anything else?" — suggest specific next actions or say nothing
-6. Use what you know about Gerald actively — don't wait to be asked
-
+You are Gerald's thinking partner, not a fact lookup. Lead with the direct answer first — always, no preamble. Add one useful line of context or connection to his business. When relevant, offer a specific proactive next step. If a question touches multiple businesses or rules, connect the dots. Never end with generic fluff like "Is there anything else?" — suggest specific next actions or say nothing. Use what you know about Gerald actively — don't wait to be asked. No markdown, no lists, no bullet points, plain prose only.
 Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where natural.`);
   }
 
@@ -1013,10 +1108,10 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
           callClaude(env.OPENROUTER_API_KEY, { model: MODELS.DEBATE_B, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 1024 }),
           callClaude(env.OPENROUTER_API_KEY, { model: MODELS.DEBATE_C, system: systemPrompt, messages: messagesForClaude, maxTokens: max_tokens || 1024 }),
         ]);
-        const tA = resA.status === 'fulfilled' ? resA.value.content[0].text : '(unavailable)';
-        const tB = resB.status === 'fulfilled' ? resB.value.content[0].text : '(unavailable)';
-        const tC = resC.status === 'fulfilled' ? resC.value.content[0].text : '(unavailable)';
-        const combined = `**Perspective A — GPT-5.4**\n\n${tA}\n\n---\n\n**Perspective B — Claude Sonnet**\n\n${tB}\n\n---\n\n**Perspective C — Gemini**\n\n${tC}`;
+        const tA = stripMarkdownForDisplay(resA.status === 'fulfilled' ? resA.value.content[0].text : '(unavailable)');
+        const tB = stripMarkdownForDisplay(resB.status === 'fulfilled' ? resB.value.content[0].text : '(unavailable)');
+        const tC = stripMarkdownForDisplay(resC.status === 'fulfilled' ? resC.value.content[0].text : '(unavailable)');
+        const combined = `Perspective A — GPT-5.4\n\n${tA}\n\n---\n\nPerspective B — Claude Sonnet\n\n${tB}\n\n---\n\nPerspective C — Gemini\n\n${tC}`;
         const debModel = `debate:${MODELS.DEBATE_A}+${MODELS.DEBATE_B}+${MODELS.DEBATE_C}`;
         await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({ type: 'text', content: combined })}\n\n`));
         await debWriter.write(debateEnc.encode(`data: ${JSON.stringify({
@@ -1128,6 +1223,9 @@ Tone: direct, no filler, no fake enthusiasm. Filipino terms acceptable where nat
         responseStatus = 'fallback';
         console.error('[ge-ai] empty response — fallback injected');
       }
+
+      // Strip markdown before sending done event
+      if (responseStatus !== 'fallback') fullText = stripMarkdownForDisplay(fullText);
 
       // Phase 4.5: Schema-enforced done event — all fields always present
       await writer.write(enc.encode(`data: ${JSON.stringify({

@@ -1587,7 +1587,7 @@ async function send() {
 }
 
 sendBtn.onclick = send;
-composer.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+composer.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && navigator.maxTouchPoints === 0) { e.preventDefault(); send(); } });
 
 // ── Memory tab ────────────────────────────────────────────────
 function memDateStr(iso) {
