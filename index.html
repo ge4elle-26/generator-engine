@@ -2228,13 +2228,6 @@ function renderTasksScopeFilter() {
     bar.appendChild(btn);
   });
 
-  if (!businesses.some(b => b.scope === 'global')) {
-    const globBtn = document.createElement('button');
-    globBtn.className = 'tasks-tab-pill' + (tasksScopeFilter === 'global' ? ' active' : '');
-    globBtn.textContent = 'Global';
-    globBtn.onclick = () => { tasksScopeFilter = 'global'; renderTasksScopeFilter(); loadTodos(); };
-    bar.appendChild(globBtn);
-  }
 }
 
 function openTodoModal(todo, suggestedText) {
