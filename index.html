@@ -21,13 +21,13 @@
   --bg:#000000;--card:#1C1C1E;--card2:#1C1C1E;
   --text:#FFFFFF;--text2:#8E8E93;--accent:#00FF87;
   --div:rgba(255,255,255,0.10);--r:20px;
-  --user-bg:#252528;--send-bg:#FFFFFF;--send-fg:#000000;
+  --user-bg:#252528;--send-bg:#FFFFFF;--send-fg:#000000;--thread-bg:#111113;
 }
 body.light{
   --bg:#FFFFFF;--card:#F2F2F7;--card2:#E5E5EA;
   --text:#1C1C1E;--text2:#6C6C70;
   --div:rgba(0,0,0,0.08);--user-bg:#E5E5EA;
-  --send-bg:#1C1C1E;--send-fg:#FFFFFF;
+  --send-bg:#1C1C1E;--send-fg:#FFFFFF;--thread-bg:#EBEBF0;
 }
 /* ── Light mode component overrides ──────────────── */
 body.light{background:#FFFFFF}
@@ -103,6 +103,8 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .status-label{font-size:11px;font-weight:600;color:var(--text2);transition:color .3s}
 .theme-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);color:var(--text2);cursor:pointer;display:grid;place-items:center}
 .user-email{font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-status-text{font-size:11px;font-weight:600;color:#00FF87;margin-left:2px;letter-spacing:.01em}
+.hdr-hi{font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── Scope selector ──────────────────────────────── */
 .scope-selector{
@@ -141,7 +143,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 /* ── Thread ─────────────────────────────────────── */
 .thread{
   flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
-  padding:18px 16px 8px;display:flex;flex-direction:column;gap:0;
+  padding:18px 16px 20px;background:var(--thread-bg);display:flex;flex-direction:column;gap:0;
   -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
 }
 .thread::-webkit-scrollbar{width:3px}
@@ -239,7 +241,7 @@ body.light .attach-chip{background:#F2F2F7}
 body.light .msg-attach-chip{background:#F2F2F7;color:#1C1C1E}
 
 .input-row{display:flex;align-items:flex-end;gap:8px;background:#1C1C1E;border-radius:26px;padding:10px 8px 10px 18px;box-shadow:0 2px 20px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07)}
-textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px}
+textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px;user-select:text;-webkit-user-select:text}
 textarea.composer::placeholder{color:var(--text2)}
 .attach-btn{flex-shrink:0;background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:grid;place-items:center}
 .send-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;background:var(--send-bg);color:var(--send-fg);cursor:pointer;display:grid;place-items:center}
@@ -585,9 +587,10 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
 
   <!-- Header -->
   <header class="hdr">
-    <div class="hdr-title">GE <span class="status-dot" id="statusDot"></span></div>
+    <div class="hdr-title">GE <span class="status-dot" id="statusDot"></span><span class="hdr-status-text" id="hdrStatusText">Live</span></div>
     <div style="display:flex;align-items:center;gap:10px">
-      <span class="user-email" id="userEmailDisplay"></span>
+      <span class="hdr-hi" id="hdrHi"></span>
+      <span class="user-email" id="userEmailDisplay" style="display:none"></span>
       <button class="menu-btn" id="menuBtn" title="Menu">
         <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="0" y1="1"  x2="18" y2="1"/>
@@ -1251,7 +1254,17 @@ function renderMsg(msg, idx) {
   } else {
     const bbl = document.createElement('div');
     bbl.className = 'bubble user-bbl';
-    bbl.textContent = msg.text;
+    if (msg.text && (msg.text.startsWith('📷') || msg.text.startsWith('📎'))) {
+      const lines = msg.text.split('\n');
+      const ico = document.createElement('span');
+      ico.textContent = lines[0].split(' ')[0];
+      ico.style.cssText = 'font-size:18px;display:block';
+      bbl.appendChild(ico);
+      const caption = lines.slice(1).join('\n').trim();
+      if (caption) bbl.appendChild(document.createTextNode(caption));
+    } else {
+      bbl.textContent = msg.text;
+    }
     wrap.appendChild(bbl);
     if (msg.attachment?.url) {
       const chip = document.createElement('a');
@@ -1259,7 +1272,8 @@ function renderMsg(msg, idx) {
       chip.href = msg.attachment.url;
       chip.target = '_blank';
       chip.rel = 'noopener noreferrer';
-      chip.textContent = `📎 ${msg.attachment.name}`;
+      chip.textContent = '📎';
+      chip.title = msg.attachment.name || '';
       wrap.appendChild(chip);
     }
     if (msg.queued) {
@@ -1324,9 +1338,8 @@ function modelDotColor(m) {
 function renderAll() {
   thread.innerHTML = '';
   messages.forEach((m, i) => thread.appendChild(renderMsg(m, i)));
-  thread.scrollTop = thread.scrollHeight;
   msgCountDis.textContent = messages.length;
-  updateScrollBtn();
+  requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; updateScrollBtn(); });
 }
 
 // ── Scroll-to-bottom button ───────────────────────────────────
@@ -2415,6 +2428,11 @@ $('logoutBtn').onclick = () => auth.signOut();
       const email = user.email || '';
       userEmailDis.textContent     = email;
       settingsEmailDis.textContent = email;
+      const hdrHiEl = $('hdrHi');
+      if (hdrHiEl) {
+        const name = user.displayName || (email ? email.split('@')[0] : null);
+        hdrHiEl.textContent = name ? `Hi, ${name}` : 'Hi';
+      }
       boot();
     } else {
       loginScreen.classList.remove('hidden');
@@ -2447,6 +2465,20 @@ composer.addEventListener('focus', () => {
   document.documentElement.scrollTop = 0;
   requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
 });
+
+// Network status — header Live/Offline text
+const _hdrStatusEl = $('hdrStatusText');
+function setNetworkStatus(online) {
+  if (!_hdrStatusEl) return;
+  _hdrStatusEl.textContent = online ? 'Live' : 'Offline';
+  _hdrStatusEl.style.color = online ? '#00FF87' : '#FF453A';
+}
+setNetworkStatus(navigator.onLine);
+window.addEventListener('online',  () => setNetworkStatus(true));
+window.addEventListener('offline', () => setNetworkStatus(false));
+
+// Keyboard dismiss — tap thread to blur composer on mobile
+thread.addEventListener('touchstart', () => composer.blur(), { passive: true });
 </script>
 </body>
 </html>
