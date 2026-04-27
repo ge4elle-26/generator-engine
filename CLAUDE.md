@@ -30,6 +30,13 @@ Session 4 — Bug Fix Pass (2026-04-27):
 - Bug 2 fixed: actProposeMemory was calling POST /save (bypasses review queue). Added POST /memory route (handleCreateMemoryProposal) that writes to users/{uid}/memory_proposals for pending review. Added saveMemory() function in index.html. actProposeMemory now calls saveMemory(). handleRecallMemory now has try-catch around initFirestore + .catch(() => []) on db.query.
 - Bug 3 fixed: handleReview had no try-catch around initFirestore — any Firestore init failure returned 500, triggering loadReview() catch block ("Could not load proposals."). Wrapped in try-catch; now returns { count:0, items:[] } on Firestore error instead of 500.
 
+Session 6 — Bug Fix Pass 2 (2026-04-27):
+- Bug 1 fixed: worker handleChat crashed on empty message with attachment — changed !message guard to allow empty string when attachment_url or image present
+- Bug 2 fixed: header dots removed — .hdr-dot, #statusDot, #activeModelDot hidden via CSS display:none!important (elements kept in DOM to avoid JS null crashes)
+- Bug 3 fixed: Save to Memory / Dismiss buttons removed from all chat bubbles — save-row block deleted from renderMsg()
+- Bug 4 fixed: scroll-to-bottom button added — .scroll-btn floats in chat area, shows when >80px from bottom, hides at bottom, onclick scrolls thread
+- Bug 5 fixed: model icons wired — getModelIconPath() maps model string to /icons/models/claude.png, /icons/models/gpt.png, /icons/models/gemini.png; rendered as 16x16 icon after each AI bubble
+
 Session 5 — Attachment System Phase 5.5 (2026-04-27):
 - imageInput accept extended: image/*, PDF, text/*, .doc/.docx/.xlsx/.csv
 - Images: existing base64 inline flow unchanged (imgBar preview)

@@ -787,7 +787,7 @@ async function handleChat(request, env, ctx) {
   }
 
   const { message, session_id, max_tokens, image, attachment_url, attachment_name, model_preference, conversation_id: incomingConvId, scope: requestScope, client_timestamp } = body;
-  if (!message || typeof message !== 'string')
+  if (typeof message !== 'string' || (message.trim() === '' && !image && !attachment_url))
     return errorResponse('message (string) is required');
 
   if (image && image.length * 0.75 > 4 * 1024 * 1024)
