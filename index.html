@@ -465,11 +465,16 @@ body.light .msg-queued-label{color:#B25000}
 .chat-strip-sep{font-size:10px;color:#3A3A3C;font-weight:400}
 .chat-strip-model{font-size:11px;color:var(--text2);font-weight:500}
 
-/* ── Chat action buttons ─────────────────────────── */
-.chat-actions{flex-shrink:0;display:flex;gap:8px;padding:8px 12px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.chat-actions::-webkit-scrollbar{display:none}
-.chat-act-btn{flex-shrink:0;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:6px 14px;font:inherit;font-size:12px;font-weight:500;background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;letter-spacing:-.01em}
-.chat-act-btn:active{background:rgba(255,255,255,.07)}
+/* ── Chat action buttons (hidden — commands moved to plus menu) ── */
+.chat-actions{display:none!important}
+
+/* ── Plus menu ───────────────────────────────────── */
+.plus-menu{display:none;flex-direction:column;gap:2px;background:var(--card);border-radius:16px;padding:8px;margin:0 0 8px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.plus-menu.show{display:flex}
+.plus-menu-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:500;color:var(--text);background:transparent;border:none;cursor:pointer;text-align:left;width:100%;-webkit-tap-highlight-color:transparent}
+.plus-menu-item:active{background:rgba(255,255,255,.08)}
+.plus-menu-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(255,255,255,.07)}
+.plus-menu-sep{height:.5px;background:var(--div);margin:4px 0}
 
 /* ── Drawer header greeting ──────────────────────────── */
 .drawer-acct-hi{font-size:15px;font-weight:700;color:#FFF;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -790,13 +795,29 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
         <span class="attach-chip-name" id="attachChipName"></span>
         <button class="attach-chip-rm" id="attachChipRm">✕</button>
       </div>
+      <div class="plus-menu" id="plusMenu">
+        <button class="plus-menu-item" id="pmLock">
+          <span class="plus-menu-icon">🔒</span>Lock
+        </button>
+        <button class="plus-menu-item" id="pmRecall">
+          <span class="plus-menu-icon">🔍</span>Recall
+        </button>
+        <button class="plus-menu-item" id="pmFocus">
+          <span class="plus-menu-icon">🎯</span>Focus
+        </button>
+        <button class="plus-menu-item" id="pmWhy">
+          <span class="plus-menu-icon">💡</span>Why
+        </button>
+        <div class="plus-menu-sep"></div>
+        <button class="plus-menu-item" id="pmImport">
+          <span class="plus-menu-icon">📋</span>Import Context
+        </button>
+      </div>
       <div class="input-row">
-        <button class="attach-btn" id="importBtn" title="Import context">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9"  y1="15" x2="15" y2="15"/>
+        <button class="attach-btn" id="importBtn" title="Commands">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
           </svg>
         </button>
         <textarea class="composer" id="composer" rows="1" placeholder="Message GE…"></textarea>
@@ -1315,9 +1336,31 @@ const importBtn   = $('importBtn');
 const importPanel = $('importPanel');
 const importTa    = $('importTa');
 
+const plusMenu = $('plusMenu');
 importBtn.onclick = () => {
-  importPanel.classList.toggle('show');
-  if (importPanel.classList.contains('show')) importTa.focus();
+  plusMenu.classList.toggle('show');
+};
+
+$('pmLock').onclick = () => {
+  plusMenu.classList.remove('show');
+  $('actProposeMemory').click();
+};
+$('pmRecall').onclick = () => {
+  plusMenu.classList.remove('show');
+  $('actRecallContext').click();
+};
+$('pmFocus').onclick = () => {
+  plusMenu.classList.remove('show');
+  $('actProposeFocus').click();
+};
+$('pmWhy').onclick = () => {
+  plusMenu.classList.remove('show');
+  $('actInspectRoute').click();
+};
+$('pmImport').onclick = () => {
+  plusMenu.classList.remove('show');
+  importPanel.classList.add('show');
+  importTa.focus();
 };
 $('importCancel').onclick = () => {
   importPanel.classList.remove('show');
@@ -2636,6 +2679,12 @@ window.addEventListener('offline', () => setNetworkStatus(false));
 
 // Keyboard dismiss — tap thread to blur composer on mobile
 thread.addEventListener('touchstart', () => composer.blur(), { passive: true });
+
+document.addEventListener('click', e => {
+  if (plusMenu.classList.contains('show') && !plusMenu.contains(e.target) && e.target !== importBtn && !importBtn.contains(e.target)) {
+    plusMenu.classList.remove('show');
+  }
+});
 </script>
 </body>
 </html>
