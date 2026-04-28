@@ -124,7 +124,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .theme-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);color:var(--text2);cursor:pointer;display:grid;place-items:center}
 .user-email{font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hdr-status-text{font-size:11px;font-weight:600;color:#00FF87;margin-left:2px;letter-spacing:.01em}
-.hdr-hi{font-size:12px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-hi{display:none}
 
 /* ── Scope selector ──────────────────────────────── */
 .scope-selector{
@@ -176,7 +176,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .msg.assistant{align-items:flex-start}
 .bubble{max-width:82%;padding:12px 16px;border-radius:var(--r);font-size:16px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
 .bubble.user-bbl{background:var(--user-bg);color:var(--text);border-radius:20px 20px 6px 20px;padding:12px 17px;font-size:15px;font-weight:400;letter-spacing:-.01em}
-.bubble.ai-bbl{background:var(--bg);color:var(--text);max-width:100%;padding:12px 16px;white-space:normal;border-radius:12px;font-size:16px;letter-spacing:-.01em}
+.bubble.ai-bbl{background:var(--bg);color:var(--text);max-width:100%;padding:11px 14px;white-space:normal;border-radius:12px;font-size:16px;letter-spacing:-.01em}
 
 /* ── Markdown inside AI bubbles ─────────────────── */
 .ai-bbl p{margin:.5em 0;line-height:1.6}
@@ -229,9 +229,10 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .scroll-btn{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);right:14px;width:34px;height:34px;border-radius:50%;border:none;background:var(--card2);color:var(--text2);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.55);z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
 .scroll-btn.show{opacity:1;pointer-events:all}
 
-/* ── Model tag below AI bubble ───────────────────── */
+/* ── Model tag inside AI bubble ─────────────────── */
 .model-icon-row{display:none}
-.model-tag{font-size:11px;color:var(--text2);margin-top:4px;padding-left:3px;font-weight:500;opacity:.75;letter-spacing:.01em}
+.model-tag{display:block;font-size:10px;color:rgba(255,255,255,.28);font-weight:600;letter-spacing:.05em;text-align:right;margin-top:8px;text-transform:uppercase;line-height:1}
+body.light .model-tag{color:rgba(0,0,0,.20)}
 
 /* ── Typing dots ────────────────────────────────── */
 .typing-dots{display:flex;gap:4px;padding:6px 0}
@@ -539,7 +540,7 @@ body.light .msg-queued-label{color:#B25000}
 /* ── App switcher ─────────────────────────────────────────── */
 .app-sw-handle{
   position:absolute;
-  bottom:calc(env(safe-area-inset-bottom,0px) + 4px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
   left:50%;transform:translateX(-50%);
   width:56px;height:24px;
   border:none;background:transparent;cursor:pointer;z-index:21;padding:0;
@@ -597,6 +598,28 @@ body.light .app-sw-tab:active{background:rgba(0,0,0,.09)}
 /* ── Keyboard open state ─────────────────────────────────────── */
 .app[data-kb="1"] .input-area{padding-bottom:6px}
 .app[data-kb="1"] .app-sw-handle{opacity:0;pointer-events:none}
+
+/* ── Fullscreen chat — floating overlay header ───────────────── */
+#screen-chat{position:relative}
+.app[data-tab="chat"] .hdr{
+  position:absolute;top:0;left:0;right:0;z-index:25;
+  background:rgba(0,0,0,.82);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+}
+.app[data-tab="chat"] .chat-strip{
+  position:absolute;
+  top:calc(env(safe-area-inset-top,0px) + 48px);
+  left:0;right:0;z-index:24;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.app[data-tab="chat"] .thread{
+  padding-top:calc(env(safe-area-inset-top,0px) + 78px);
+}
+body.light .app[data-tab="chat"] .hdr{background:rgba(255,255,255,.90)}
+body.light .app[data-tab="chat"] .chat-strip{background:rgba(242,242,247,.90)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>marked.use({ gfm: true, breaks: false });</script>
@@ -771,7 +794,7 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
 
 </div>
 
-<div class="app">
+<div class="app" data-tab="chat">
 
   <!-- Header -->
   <header class="hdr">
@@ -1376,6 +1399,7 @@ function switchTab(tab) {
   navItems.forEach(n => n.classList.toggle('active', n.dataset.tab === tab));
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   $(`screen-${tab}`).classList.remove('hidden');
+  document.querySelector('.app').dataset.tab = tab;
   if (tab === 'memory') loadMemory();
   if (tab === 'review') loadReview();
   if (tab === 'tasks') { renderTasksScopeFilter(); loadTodos(); }
@@ -1491,7 +1515,7 @@ function renderMsg(msg, idx) {
       const tag = document.createElement('div');
       tag.className = 'model-tag';
       tag.textContent = modelName;
-      wrap.appendChild(tag);
+      bbl.appendChild(tag);
     }
   } else {
     const bbl = document.createElement('div');
@@ -2726,7 +2750,7 @@ if (window.visualViewport && _appEl) {
       thread.scrollTop = thread.scrollHeight;
       // track max seen height so keyboard-open can be detected as a reduction
       if (vvp.height > _fullVvh) _fullVvh = vvp.height;
-      const kbOpen = _fullVvh > 0 && vvp.height < _fullVvh * 0.85;
+      const kbOpen = _fullVvh > 0 && vvp.height < _fullVvh - 120;
       if (kbOpen) _appEl.setAttribute('data-kb', '1');
       else         _appEl.removeAttribute('data-kb');
     });
@@ -2788,6 +2812,20 @@ appSwBackdrop.onclick = closeAppSw;
 appSwPanel.querySelectorAll('.app-sw-tab').forEach(btn => {
   btn.onclick = () => { switchTab(btn.dataset.tab); closeAppSw(); };
 });
+
+// Swipe-up to open app switcher — handle and input area
+{
+  let _swY = 0;
+  const swStart = e => { _swY = (e.touches || [e])[0].clientY; };
+  const swEnd   = e => { if (_swY - (e.changedTouches || [e])[0].clientY >= 40) openAppSw(); };
+  appSwHandle.addEventListener('touchstart', swStart, { passive: true });
+  appSwHandle.addEventListener('touchend',   swEnd,   { passive: true });
+  const _inputArea = document.querySelector('.input-area');
+  if (_inputArea) {
+    _inputArea.addEventListener('touchstart', swStart, { passive: true });
+    _inputArea.addEventListener('touchend',   swEnd,   { passive: true });
+  }
+}
 </script>
 </body>
 </html>
