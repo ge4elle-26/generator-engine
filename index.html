@@ -95,6 +95,8 @@ body.light .ie-modal-desc strong{color:#1C1C1E}
 body.light .ie-btn.secondary{background:rgba(0,0,0,.06);color:#1C1C1E}
 body.light .ie-close-btn{color:#6C6C70}
 body.light .bubble.ai-bbl{background:var(--bg);box-shadow:0 1px 6px rgba(0,0,0,.07)}
+body.light .send-btn{background:rgba(0,0,0,.08);color:rgba(0,0,0,.24)}
+body.light .send-btn:not(:disabled){background:var(--accent);color:#000}
 body.light .plus-menu{background:rgba(242,242,247,.96);border-color:rgba(0,0,0,.09);box-shadow:0 4px 20px rgba(0,0,0,.10)}
 body.light .plus-menu-item:active{background:rgba(0,0,0,.07)}
 
@@ -169,15 +171,15 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .thread::-webkit-scrollbar-thumb{background:var(--card2);border-radius:99px}
 
 /* ── Messages ───────────────────────────────────── */
-.msg{display:flex;flex-direction:column;margin:10px 0;animation:fadein .18s ease-out}
+.msg{display:flex;flex-direction:column;margin:12px 0;animation:fadein .18s ease-out}
 .msg.user{align-items:flex-end}
 .msg.assistant{align-items:flex-start}
-.bubble{max-width:82%;padding:12px 16px;border-radius:var(--r);font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
-.bubble.user-bbl{background:var(--user-bg);color:var(--text);border-radius:20px 20px 6px 20px;padding:13px 17px;font-weight:400;letter-spacing:-.01em}
-.bubble.ai-bbl{background:var(--bg);color:var(--text);max-width:100%;padding:10px 14px;white-space:normal;border-radius:12px}
+.bubble{max-width:82%;padding:12px 16px;border-radius:var(--r);font-size:16px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.bubble.user-bbl{background:var(--user-bg);color:var(--text);border-radius:20px 20px 6px 20px;padding:12px 17px;font-size:15px;font-weight:400;letter-spacing:-.01em}
+.bubble.ai-bbl{background:var(--bg);color:var(--text);max-width:100%;padding:12px 16px;white-space:normal;border-radius:12px;font-size:16px;letter-spacing:-.01em}
 
 /* ── Markdown inside AI bubbles ─────────────────── */
-.ai-bbl p{margin:.45em 0;line-height:1.55}
+.ai-bbl p{margin:.5em 0;line-height:1.6}
 .ai-bbl p:first-child{margin-top:0}
 .ai-bbl p:last-child{margin-bottom:0}
 .ai-bbl h1,.ai-bbl h2,.ai-bbl h3,.ai-bbl h4{font-weight:700;line-height:1.3;margin:.8em 0 .35em}
@@ -227,9 +229,9 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .scroll-btn{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);right:14px;width:34px;height:34px;border-radius:50%;border:none;background:var(--card2);color:var(--text2);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.55);z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
 .scroll-btn.show{opacity:1;pointer-events:all}
 
-/* ── Model icon in AI bubble ──────────────────────── */
-.model-icon-row{display:flex;justify-content:flex-end;margin-top:4px;align-self:stretch}
-.model-icon{width:16px;height:16px;border-radius:3px;opacity:.55;object-fit:contain}
+/* ── Model tag below AI bubble ───────────────────── */
+.model-icon-row{display:none}
+.model-tag{font-size:11px;color:var(--text2);margin-top:4px;padding-left:3px;font-weight:500;opacity:.75;letter-spacing:.01em}
 
 /* ── Typing dots ────────────────────────────────── */
 .typing-dots{display:flex;gap:4px;padding:6px 0}
@@ -259,11 +261,18 @@ body.light .attach-chip{background:#F2F2F7}
 body.light .msg-attach-chip{background:#F2F2F7;color:#1C1C1E}
 
 .input-row{display:flex;align-items:flex-end;gap:8px;background:#1C1C1E;border-radius:26px;padding:10px 8px 10px 18px;box-shadow:0 2px 20px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07)}
-textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px;user-select:text;-webkit-user-select:text}
+textarea.composer{flex:1;background:transparent;border:none;outline:none;color:var(--text);font:inherit;font-size:15px;line-height:1.4;resize:none;min-height:22px;max-height:96px;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default}
 textarea.composer::placeholder{color:var(--text2)}
 .attach-btn{flex-shrink:0;background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:grid;place-items:center}
-.send-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:none;background:var(--send-bg);color:var(--send-fg);cursor:pointer;display:grid;place-items:center}
-.send-btn:disabled{opacity:.35;cursor:default}
+.send-btn{
+  flex-shrink:0;width:34px;height:34px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.11);color:rgba(255,255,255,.28);
+  cursor:pointer;display:grid;place-items:center;
+  transition:background .18s,transform .12s,color .18s;
+}
+.send-btn:not(:disabled){background:var(--accent);color:#000}
+.send-btn:not(:disabled):active{transform:scale(.88)}
+.send-btn:disabled{cursor:default}
 .attach-btn.context-on{color:var(--accent)}
 /* ── Queued message indicator ─────────────────────── */
 .msg-queued-label{font-size:11px;color:#FF9F0A;margin-top:4px;align-self:flex-end;font-weight:600}
@@ -584,6 +593,10 @@ body.light .app-sw-handle:active .app-sw-hbar{background:rgba(0,0,0,.38)}
 body.light .app-sw-panel{background:rgba(242,242,247,.96);border-color:rgba(0,0,0,.09);box-shadow:0 4px 20px rgba(0,0,0,.12)}
 body.light .app-sw-tab.active{background:rgba(0,0,0,.06);color:var(--text)}
 body.light .app-sw-tab:active{background:rgba(0,0,0,.09)}
+
+/* ── Keyboard open state ─────────────────────────────────────── */
+.app[data-kb="1"] .input-area{padding-bottom:6px}
+.app[data-kb="1"] .app-sw-handle{opacity:0;pointer-events:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>marked.use({ gfm: true, breaks: false });</script>
@@ -1473,17 +1486,12 @@ function renderMsg(msg, idx) {
     bbl.innerHTML = renderMarkdown(msg.text);
     wrap.appendChild(bbl);
 
-    const iconSrc = getModelIconPath(msg.model);
-    if (iconSrc) {
-      const iconRow = document.createElement('div');
-      iconRow.className = 'model-icon-row';
-      const icon = document.createElement('img');
-      icon.className = 'model-icon';
-      icon.src = iconSrc;
-      icon.alt = '';
-      icon.onerror = () => { console.warn('[GE] model icon 404:', iconSrc); iconRow.style.display = 'none'; };
-      iconRow.appendChild(icon);
-      wrap.appendChild(iconRow);
+    const modelName = getModelName(msg.model);
+    if (modelName) {
+      const tag = document.createElement('div');
+      tag.className = 'model-tag';
+      tag.textContent = modelName;
+      wrap.appendChild(tag);
     }
   } else {
     const bbl = document.createElement('div');
@@ -1550,6 +1558,15 @@ function getModelIconPath(model) {
   if (m.includes('claude') || m.includes('anthropic')) return '/public/icons/models/claude.png';
   if (m.includes('gpt') || m.includes('openai'))       return '/public/icons/models/gpt.png';
   if (m.includes('gemini') || m.includes('google'))    return '/public/icons/models/gemini.png';
+  return null;
+}
+
+function getModelName(model) {
+  if (!model) return null;
+  const m = model.toLowerCase();
+  if (m.includes('claude') || m.includes('anthropic')) return 'Claude';
+  if (m.includes('gpt') || m.includes('openai'))       return 'GPT';
+  if (m.includes('gemini') || m.includes('google'))    return 'Gemini';
   return null;
 }
 
@@ -2697,7 +2714,7 @@ $('logoutBtn').onclick = () => auth.signOut();
 // Mobile keyboard: pin .app to visual viewport — direct inline style, no CSS var delay
 const _appEl = document.querySelector('.app');
 if (window.visualViewport && _appEl) {
-  let _vvRaf;
+  let _vvRaf, _fullVvh = 0;
   const syncVV = () => {
     const vvp = window.visualViewport;
     cancelAnimationFrame(_vvRaf);
@@ -2707,6 +2724,11 @@ if (window.visualViewport && _appEl) {
       document.body.scrollTop = 0;
       document.documentElement.scrollTop = 0;
       thread.scrollTop = thread.scrollHeight;
+      // track max seen height so keyboard-open can be detected as a reduction
+      if (vvp.height > _fullVvh) _fullVvh = vvp.height;
+      const kbOpen = _fullVvh > 0 && vvp.height < _fullVvh * 0.85;
+      if (kbOpen) _appEl.setAttribute('data-kb', '1');
+      else         _appEl.removeAttribute('data-kb');
     });
   };
   window.visualViewport.addEventListener('resize', syncVV);
@@ -2730,8 +2752,10 @@ setNetworkStatus(navigator.onLine);
 window.addEventListener('online',  () => setNetworkStatus(true));
 window.addEventListener('offline', () => setNetworkStatus(false));
 
-// Keyboard dismiss — tap thread to blur composer on mobile
-thread.addEventListener('touchstart', () => composer.blur(), { passive: true });
+// Keyboard dismiss — tap thread to blur composer; guard avoids spurious blur on already-unfocused state
+thread.addEventListener('touchstart', () => {
+  if (document.activeElement === composer) composer.blur();
+}, { passive: true });
 
 document.addEventListener('click', e => {
   if (plusMenu.classList.contains('show') && !plusMenu.contains(e.target) && e.target !== importBtn && !importBtn.contains(e.target)) {
