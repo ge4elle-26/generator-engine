@@ -19,12 +19,14 @@
 /* ── Tokens ─────────────────────────────────────── */
 :root{
   --bg:#000000;--card:#1C1C1E;--card2:#1C1C1E;
+  --popup-bg:#1C1C1E;--danger:#FF453A;
   --text:#FFFFFF;--text2:#8E8E93;--accent:#00FF87;
   --div:rgba(255,255,255,0.10);--r:20px;
   --user-bg:#252528;--send-bg:#FFFFFF;--send-fg:#000000;--thread-bg:#111113;
 }
 body.light{
   --bg:#FFFFFF;--card:#F2F2F7;--card2:#E5E5EA;
+  --popup-bg:#FFFFFF;
   --text:#1C1C1E;--text2:#6C6C70;
   --div:rgba(0,0,0,0.08);--user-bg:#E5E5EA;
   --send-bg:#1C1C1E;--send-fg:#FFFFFF;--thread-bg:#EBEBF0;
@@ -92,7 +94,9 @@ body.light .ie-modal-desc{color:#6C6C70}
 body.light .ie-modal-desc strong{color:#1C1C1E}
 body.light .ie-btn.secondary{background:rgba(0,0,0,.06);color:#1C1C1E}
 body.light .ie-close-btn{color:#6C6C70}
-body.light .bubble.ai-bbl{background:var(--bg)}
+body.light .bubble.ai-bbl{background:var(--bg);box-shadow:0 1px 6px rgba(0,0,0,.07)}
+body.light .plus-menu{background:rgba(242,242,247,.96);border-color:rgba(0,0,0,.09);box-shadow:0 4px 20px rgba(0,0,0,.10)}
+body.light .plus-menu-item:active{background:rgba(0,0,0,.07)}
 
 /* ── Reset ──────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
@@ -329,12 +333,12 @@ body.light .msg-queued-label{color:#B25000}
 .biz-modal-overlay.hidden{display:none}
 .biz-modal-card{
   width:100%;max-width:640px;margin:0 auto;
-  background:#1C1C1E;border-radius:20px 20px 0 0;
+  background:var(--popup-bg);border-radius:20px 20px 0 0;
   padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;gap:12px;
 }
-.biz-modal-title{font-size:18px;font-weight:700;color:#FFF}
-.biz-field{background:#000000;border:1px solid rgba(255,255,255,0.1);outline:none;color:#FFF;font:inherit;font-size:15px;border-radius:12px;padding:13px 16px;width:100%}
+.biz-modal-title{font-size:18px;font-weight:700;color:var(--text)}
+.biz-field{background:var(--bg);border:1px solid var(--div);outline:none;color:var(--text);font:inherit;font-size:15px;border-radius:12px;padding:13px 16px;width:100%}
 .biz-field::placeholder{color:#8E8E93}
 .color-swatch-row{display:flex;gap:10px;padding:2px 0}
 .color-swatch{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;flex-shrink:0;transition:border-color .15s}
@@ -344,7 +348,7 @@ body.light .msg-queued-label{color:#B25000}
 .biz-modal-btn.primary{background:#00FF87;color:#000}
 .biz-modal-btn.secondary{background:#1C1C1E;color:#8E8E93}
 .biz-modal-btn:disabled{opacity:.45;cursor:default}
-.biz-delete-btn{background:none;border:none;color:#FF453A;font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:center;padding:4px}
+.biz-delete-btn{background:none;border:none;color:var(--danger);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:center;padding:4px}
 
 /* ── State screen ───────────────────────────────── */
 .state-scroll{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
@@ -360,7 +364,7 @@ body.light .msg-queued-label{color:#B25000}
 .tog input:checked~.tog-track{background:var(--accent)}
 .tog-thumb{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#FFF;transition:transform .2s;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .tog input:checked~.tog-thumb{transform:translateX(20px)}
-.s-logout-btn{background:var(--card2);color:#FF453A;border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.s-logout-btn{background:var(--card2);color:var(--danger);border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 
 /* ── Review screen ──────────────────────────────── */
 .review-scroll{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
@@ -400,8 +404,8 @@ body.light .msg-queued-label{color:#B25000}
 .todo-fab{position:absolute;bottom:16px;right:16px;width:52px;height:52px;border-radius:50%;border:none;background:#00FF87;color:#000;font-size:30px;line-height:1;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 20px rgba(0,255,135,.4);z-index:10}
 .todo-modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);display:flex;align-items:flex-end}
 .todo-modal-overlay.hidden{display:none}
-.todo-modal-card{width:100%;max-width:640px;margin:0 auto;background:#1C1C1E;border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
-.todo-modal-title{font-size:18px;font-weight:700;color:#FFF}
+.todo-modal-card{width:100%;max-width:640px;margin:0 auto;background:var(--popup-bg);border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.todo-modal-title{font-size:18px;font-weight:700;color:var(--text)}
 .todo-field-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
 .todo-propose-row{display:flex;gap:8px;margin-top:8px}
 .todo-propose-chip{border:none;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -420,7 +424,7 @@ body.light .msg-queued-label{color:#B25000}
 .login-logo{font-size:26px;font-weight:800;text-align:center;letter-spacing:-.5px;color:#FFF;display:flex;align-items:center;justify-content:center;gap:8px}
 .login-dot{width:8px;height:8px;border-radius:50%;background:#00FF87;flex-shrink:0}
 .login-sub{font-size:14px;color:#8E8E93;text-align:center;margin-top:-6px}
-.login-field{background:#000000;border:1px solid rgba(255,255,255,0.1);outline:none;color:#FFF;font:inherit;font-size:16px;border-radius:12px;padding:14px 16px;width:100%}
+.login-field{background:var(--bg);border:1px solid var(--div);outline:none;color:var(--text);font:inherit;font-size:16px;border-radius:12px;padding:14px 16px;width:100%}
 .login-field::placeholder{color:#8E8E93}
 .login-err{font-size:13px;color:#FF453A;text-align:center;min-height:18px}
 .login-ok{font-size:13px;color:#00FF87;text-align:center;min-height:18px}
@@ -437,7 +441,7 @@ body.light .msg-queued-label{color:#B25000}
 /* ── Drawer ──────────────────────────────────────── */
 .drawer-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.65);opacity:0;pointer-events:none;transition:opacity .25s}
 .drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:#1C1C1E;z-index:401;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);overflow-y:auto}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--popup-bg);z-index:401;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);overflow-y:auto}
 .drawer.open{transform:translateX(0)}
 .drawer-hdr{flex-shrink:0;padding:20px 20px 16px;font-size:20px;font-weight:800;letter-spacing:-.4px;color:#FFF;display:flex;align-items:center;gap:8px;border-bottom:.5px solid rgba(255,255,255,.10)}
 .drawer-logo-dot{width:8px;height:8px;border-radius:50%;background:#00FF87;flex-shrink:0}
@@ -450,7 +454,7 @@ body.light .msg-queued-label{color:#B25000}
 /* ── Drawer account section ──────────────────────────────── */
 .drawer-account{padding:16px 20px 14px;border-bottom:.5px solid rgba(255,255,255,.10)}
 .drawer-acct-email{font-size:13px;color:#8E8E93;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drawer-signout-btn{background:rgba(255,255,255,.07);border:none;border-radius:10px;padding:8px 16px;font:inherit;font-size:14px;font-weight:600;color:#FF453A;cursor:pointer;width:100%;text-align:left}
+.drawer-signout-btn{background:rgba(255,255,255,.07);border:none;border-radius:10px;padding:8px 16px;font:inherit;font-size:14px;font-weight:600;color:var(--danger);cursor:pointer;width:100%;text-align:left}
 .drawer-signout-btn:hover,.drawer-signout-btn:active{background:rgba(255,69,58,.15)}
 
 /* ── Drawer scope item ───────────────────────────────────── */
@@ -469,12 +473,28 @@ body.light .msg-queued-label{color:#B25000}
 .chat-actions{display:none!important}
 
 /* ── Plus menu ───────────────────────────────────── */
-.plus-menu{display:none;flex-direction:column;gap:2px;background:var(--card);border-radius:16px;padding:8px;margin:0 0 8px;border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.plus-menu{
+  display:none;flex-direction:column;
+  background:rgba(28,28,30,.96);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-radius:14px;padding:4px;margin:0 0 8px;
+  border:1px solid var(--div);
+  box-shadow:0 8px 32px rgba(0,0,0,.55);
+}
 .plus-menu.show{display:flex}
-.plus-menu-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:500;color:var(--text);background:transparent;border:none;cursor:pointer;text-align:left;width:100%;-webkit-tap-highlight-color:transparent}
-.plus-menu-item:active{background:rgba(255,255,255,.08)}
-.plus-menu-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(255,255,255,.07)}
-.plus-menu-sep{height:.5px;background:var(--div);margin:4px 0}
+.plus-menu-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 16px;border-radius:10px;
+  font:inherit;font-size:14px;font-weight:500;
+  color:var(--text);background:transparent;border:none;
+  cursor:pointer;text-align:left;width:100%;
+  -webkit-tap-highlight-color:transparent;
+}
+.plus-menu-item:active{background:rgba(255,255,255,.10)}
+.plus-menu-item-icon{width:18px;height:18px;flex-shrink:0;color:var(--text2);display:flex;align-items:center;justify-content:center}
+.plus-menu-item-lbl{flex:1}
+.plus-menu-item-hint{font-size:12px;color:var(--text2);font-weight:400}
 
 /* ── Drawer header greeting ──────────────────────────── */
 .drawer-acct-hi{font-size:15px;font-weight:700;color:#FFF;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -497,15 +517,15 @@ body.light .msg-queued-label{color:#B25000}
 /* ── Import / Export modal ───────────────────────────── */
 .ie-modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.72);display:flex;align-items:flex-end}
 .ie-modal-overlay.hidden{display:none}
-.ie-modal-card{width:100%;max-width:640px;margin:0 auto;background:#1C1C1E;border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
-.ie-modal-title{font-size:18px;font-weight:700;color:#FFF}
-.ie-modal-desc{font-size:14px;color:#8E8E93;line-height:1.6}
-.ie-modal-desc strong{color:#FFF;font-weight:700}
+.ie-modal-card{width:100%;max-width:640px;margin:0 auto;background:var(--popup-bg);border-radius:20px 20px 0 0;padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.ie-modal-title{font-size:18px;font-weight:700;color:var(--text)}
+.ie-modal-desc{font-size:14px;color:var(--text2);line-height:1.6}
+.ie-modal-desc strong{color:var(--text);font-weight:700}
 .ie-modal-actions{display:flex;flex-direction:column;gap:8px}
 .ie-btn{border:none;border-radius:12px;padding:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;background:#00FF87;color:#000;text-align:center}
-.ie-btn.secondary{background:rgba(255,255,255,.07);color:#FFF}
+.ie-btn.secondary{background:var(--div);color:var(--text)}
 .ie-btn:active{opacity:.85}
-.ie-close-btn{background:none;border:none;color:#8E8E93;font:inherit;font-size:14px;cursor:pointer;padding:4px;text-align:center}
+.ie-close-btn{background:none;border:none;color:var(--text2);font:inherit;font-size:14px;cursor:pointer;padding:4px;text-align:center}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>marked.use({ gfm: true, breaks: false });</script>
@@ -797,20 +817,24 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
       </div>
       <div class="plus-menu" id="plusMenu">
         <button class="plus-menu-item" id="pmLock">
-          <span class="plus-menu-icon">🔒</span>Lock
+          <span class="plus-menu-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <span class="plus-menu-item-lbl">Lock</span>
+          <span class="plus-menu-item-hint">Save to memory</span>
         </button>
         <button class="plus-menu-item" id="pmRecall">
-          <span class="plus-menu-icon">🔍</span>Recall
+          <span class="plus-menu-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <span class="plus-menu-item-lbl">Recall</span>
+          <span class="plus-menu-item-hint">Active context</span>
         </button>
         <button class="plus-menu-item" id="pmFocus">
-          <span class="plus-menu-icon">🎯</span>Focus
+          <span class="plus-menu-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+          <span class="plus-menu-item-lbl">Focus</span>
+          <span class="plus-menu-item-hint">Set goal</span>
         </button>
         <button class="plus-menu-item" id="pmWhy">
-          <span class="plus-menu-icon">💡</span>Why
-        </button>
-        <div class="plus-menu-sep"></div>
-        <button class="plus-menu-item" id="pmImport">
-          <span class="plus-menu-icon">📋</span>Import Context
+          <span class="plus-menu-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+          <span class="plus-menu-item-lbl">Why</span>
+          <span class="plus-menu-item-hint">Route info</span>
         </button>
       </div>
       <div class="input-row">
@@ -1356,11 +1380,6 @@ $('pmFocus').onclick = () => {
 $('pmWhy').onclick = () => {
   plusMenu.classList.remove('show');
   $('actInspectRoute').click();
-};
-$('pmImport').onclick = () => {
-  plusMenu.classList.remove('show');
-  importPanel.classList.add('show');
-  importTa.focus();
 };
 $('importCancel').onclick = () => {
   importPanel.classList.remove('show');
