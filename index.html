@@ -553,19 +553,19 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
   </div>
 </div>
 
-<!-- Business add / edit modal -->
+<!-- Folder add / edit modal -->
 <div class="biz-modal-overlay hidden" id="bizModal">
   <div class="biz-modal-card">
-    <div class="biz-modal-title" id="bizModalTitle">Add Business</div>
-    <input class="biz-field" id="bizName"  placeholder="Business name"                    autocapitalize="words"/>
+    <div class="biz-modal-title" id="bizModalTitle">Add Folder</div>
+    <input class="biz-field" id="bizName"  placeholder="Folder name"                      autocapitalize="words"/>
     <input class="biz-field" id="bizDesc"  placeholder="Short description (optional)"/>
-    <input class="biz-field" id="bizScope" placeholder="Scope tag  e.g. meatsource"       autocapitalize="none"/>
+    <input class="biz-field" id="bizScope" placeholder="Folder tag  e.g. meatsource"      autocapitalize="none"/>
     <div class="color-swatch-row" id="bizColorRow"></div>
     <div class="biz-modal-actions">
       <button class="biz-modal-btn secondary" id="bizCancelBtn">Cancel</button>
       <button class="biz-modal-btn primary"   id="bizSaveBtn">Save</button>
     </div>
-    <button class="biz-delete-btn" id="bizDeleteBtn" style="display:none">Delete Business</button>
+    <button class="biz-delete-btn" id="bizDeleteBtn" style="display:none">Delete Folder</button>
   </div>
 </div>
 
@@ -625,88 +625,21 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
     <button class="drawer-signout-btn" id="drawerSignOutBtn">Sign Out</button>
   </div>
 
-  <!-- Briefcases -->
-  <div class="drawer-section-lbl">Briefcases</div>
+  <!-- BRIEFCASE -->
+  <div class="drawer-section-lbl">BRIEFCASE</div>
   <div id="drawerScopeList"></div>
   <button class="drawer-item" id="drawerManageBriefcases" style="font-size:13px;color:var(--text2);padding:9px 20px">
     <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;opacity:.5">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
-    Add / Edit Briefcases
+    Add / Edit Folders
   </button>
 
   <div class="drawer-sep"></div>
 
-  <!-- Chief of Staff -->
-  <div class="drawer-section-lbl">Chief of Staff</div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-    Briefing<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-    </svg>
-    Commitments<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-    Decision Desk<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-    </svg>
-    Waiting-For<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
-    Escalation<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-    Daily Closeout<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-    </svg>
-    Source Confidence<span class="drawer-soon">Soon</span>
-  </div>
-  <div class="drawer-locked">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-    </svg>
-    Current Awareness<span class="drawer-soon">Soon</span>
-  </div>
+  <!-- WORK -->
+  <div class="drawer-section-lbl">WORK</div>
 
-  <div class="drawer-sep"></div>
-
-  <!-- Settings -->
-  <div class="drawer-section-lbl">Settings</div>
-
-  <button class="drawer-item" id="drawerMemory">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-    </svg>
-    Memory
-  </button>
-  <button class="drawer-item" id="drawerSystem">
-    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-    State
-  </button>
   <button class="drawer-item" id="drawerResearch">
     <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -720,6 +653,25 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
       <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
     </svg>
     Import / Export
+  </button>
+  <div class="drawer-locked">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+    Scratchpad<span class="drawer-soon">Soon</span>
+  </div>
+
+  <div class="drawer-sep"></div>
+
+  <!-- SYSTEM -->
+  <div class="drawer-section-lbl">SYSTEM</div>
+
+  <button class="drawer-item" id="drawerSystem">
+    <svg class="drawer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    System
   </button>
 
   <!-- Theme toggle row -->
@@ -739,7 +691,8 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
 
   <div class="drawer-sep"></div>
 
-  <!-- About -->
+  <!-- ABOUT -->
+  <div class="drawer-section-lbl">ABOUT</div>
   <div class="drawer-about-row">
     <div class="drawer-about-name">Generator Engine</div>
     <div class="drawer-about-ver">v2.5 · Beta</div>
@@ -1173,7 +1126,7 @@ function renderColorSwatches() {
 
 function openBizModal(biz) {
   editingBizId         = biz ? biz.id : null;
-  $('bizModalTitle').textContent = biz ? 'Edit Business' : 'Add Business';
+  $('bizModalTitle').textContent = biz ? 'Edit Folder' : 'Add Folder';
   $('bizName').value   = biz ? biz.name        : '';
   $('bizDesc').value   = biz ? biz.description : '';
   $('bizScope').value  = biz ? biz.scope       : '';
@@ -2226,13 +2179,12 @@ function closeDrawer() { $('drawer').classList.remove('open'); $('drawerOverlay'
 $('menuBtn').onclick       = openDrawer;
 $('drawerOverlay').onclick = closeDrawer;
 
-$('drawerSignOutBtn').onclick     = () => { closeDrawer(); auth.signOut(); };
-$('drawerMemory').onclick         = () => { closeDrawer(); switchTab('memory'); };
-$('drawerSystem').onclick         = () => { closeDrawer(); switchTab('state'); };
-$('drawerResearch').onclick       = () => { closeDrawer(); activateResearch(); };
-$('drawerImport').onclick         = () => { closeDrawer(); openIEModal(); };
+$('drawerSignOutBtn').onclick       = () => { closeDrawer(); auth.signOut(); };
+$('drawerSystem').onclick          = () => { closeDrawer(); switchTab('state'); };
+$('drawerResearch').onclick        = () => { closeDrawer(); activateResearch(); };
+$('drawerImport').onclick          = () => { closeDrawer(); openIEModal(); };
 $('drawerManageBriefcases').onclick = () => { closeDrawer(); openBizModal(null); };
-$('drawerThemeRow').onclick       = () => applyTheme(!isDark);
+$('drawerThemeRow').onclick        = () => applyTheme(!isDark);
 
 function exportChat() {
   if (!messages.length) { toast('No messages to export'); return; }
