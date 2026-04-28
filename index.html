@@ -41,7 +41,7 @@ body.light .scope-option:hover,body.light .scope-option:active{background:rgba(0
 body.light .chat-strip{background:#F2F2F7}
 body.light .chat-act-btn{border-color:rgba(0,0,0,.10)}
 body.light .chat-act-btn:active{background:rgba(0,0,0,.05)}
-body.light .input-area{background:#FFFFFF}
+body.light .input-area{background:transparent}
 body.light .input-row{background:#F2F2F7;border-color:rgba(0,0,0,.08);box-shadow:0 2px 20px rgba(0,0,0,.06)}
 body.light .nav{background:#FFFFFF}
 body.light .ai-bbl code{background:rgba(0,0,0,.06)}
@@ -223,8 +223,8 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 .save-chip:active{opacity:.7}
 
 /* ── Scroll-to-bottom button ─────────────────────── */
-#screen-chat{position:relative}
-.scroll-btn{position:absolute;bottom:12px;right:14px;width:34px;height:34px;border-radius:50%;border:none;background:var(--card2);color:var(--text2);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.55);z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
+#screen-chat{position:relative;background:var(--thread-bg)}
+.scroll-btn{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);right:14px;width:34px;height:34px;border-radius:50%;border:none;background:var(--card2);color:var(--text2);cursor:pointer;display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.55);z-index:20;opacity:0;pointer-events:none;transition:opacity .18s}
 .scroll-btn.show{opacity:1;pointer-events:all}
 
 /* ── Model icon in AI bubble ──────────────────────── */
@@ -239,7 +239,7 @@ html,body{height:100%;overflow:hidden;background:#000000;color:var(--text);
 @keyframes tdot{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
 
 /* ── Input ──────────────────────────────────────── */
-.input-area{flex-shrink:0;background:#000000;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.input-area{flex-shrink:0;background:transparent;padding:8px 12px calc(30px + env(safe-area-inset-bottom,0px))}
 .img-bar{display:none;align-items:center;gap:10px;margin-bottom:8px}
 .img-bar.show{display:flex}
 .img-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0}
@@ -280,8 +280,8 @@ body.light .msg-queued-label{color:#B25000}
 .import-act-btn.ok{background:var(--accent);color:#000}
 .import-act-btn.cancel{background:var(--card2);color:var(--text2)}
 
-/* ── Bottom nav — 3 tabs ────────────────────────── */
-.nav{flex-shrink:0;background:#000000;border-top:.5px solid var(--div);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+/* ── Bottom nav — hidden; navigation via app switcher ── */
+.nav{display:none!important}
 .nav-item{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:10px;font-weight:600;min-width:0;position:relative}
 .nav-item.active{color:var(--accent)}
 .nav-lbl{display:block;font-size:10px}
@@ -291,7 +291,7 @@ body.light .msg-queued-label{color:#B25000}
 
 /* ── Memory screen ──────────────────────────────── */
 .mem-hdr{flex-shrink:0;padding:16px 20px 12px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--div)}
-.mem-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mem-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 .mem-item{padding:14px 20px;border-bottom:.5px solid var(--div)}
 .mem-item-text{font-size:15px;line-height:1.45}
 .mem-item-foot{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
@@ -351,7 +351,7 @@ body.light .msg-queued-label{color:#B25000}
 .biz-delete-btn{background:none;border:none;color:var(--danger);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:center;padding:4px}
 
 /* ── State screen ───────────────────────────────── */
-.state-scroll{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.state-scroll{flex:1;overflow-y:auto;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 80px);display:flex;flex-direction:column;gap:16px}
 .s-group{background:var(--card);border-radius:var(--r);overflow:hidden}
 .s-label{padding:11px 16px 6px;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
 .s-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:.5px solid var(--div);font-size:15px}
@@ -367,7 +367,7 @@ body.light .msg-queued-label{color:#B25000}
 .s-logout-btn{background:var(--card2);color:var(--danger);border:none;border-radius:8px;padding:6px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 
 /* ── Review screen ──────────────────────────────── */
-.review-scroll{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.review-scroll{flex:1;overflow-y:auto;padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 80px);display:flex;flex-direction:column;gap:8px}
 .review-card{background:var(--card);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .review-card-text{font-size:15px;line-height:1.45;color:var(--text)}
 .review-card-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -526,6 +526,64 @@ body.light .msg-queued-label{color:#B25000}
 .ie-btn.secondary{background:var(--div);color:var(--text)}
 .ie-btn:active{opacity:.85}
 .ie-close-btn{background:none;border:none;color:var(--text2);font:inherit;font-size:14px;cursor:pointer;padding:4px;text-align:center}
+
+/* ── App switcher ─────────────────────────────────────────── */
+.app-sw-handle{
+  position:absolute;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 4px);
+  left:50%;transform:translateX(-50%);
+  width:56px;height:24px;
+  border:none;background:transparent;cursor:pointer;z-index:21;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.app-sw-hbar{
+  width:36px;height:4px;border-radius:999px;
+  background:rgba(255,255,255,.22);pointer-events:none;
+  transition:background .15s;
+}
+.app-sw-handle:active .app-sw-hbar{background:rgba(255,255,255,.5)}
+body.light .app-sw-hbar{background:rgba(0,0,0,.16)}
+body.light .app-sw-handle:active .app-sw-hbar{background:rgba(0,0,0,.38)}
+
+.app-sw-backdrop{position:absolute;inset:0;z-index:28;display:none}
+.app-sw-backdrop.open{display:block}
+
+.app-sw-panel{
+  position:absolute;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 32px);
+  left:16px;right:16px;
+  background:rgba(28,28,30,.96);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid var(--div);border-radius:20px;padding:8px;
+  display:none;flex-direction:row;gap:4px;
+  z-index:30;box-shadow:0 8px 32px rgba(0,0,0,.6);
+}
+.app-sw-panel.open{display:flex}
+
+.app-sw-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;padding:10px 4px;
+  border:none;background:transparent;color:var(--text2);
+  font:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;border-radius:14px;position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+.app-sw-tab.active{background:rgba(255,255,255,.09);color:var(--text)}
+.app-sw-tab:active{background:rgba(255,255,255,.14)}
+
+.app-sw-dot{
+  position:absolute;top:5px;right:10px;
+  min-width:14px;height:14px;border-radius:999px;
+  background:var(--danger);color:#FFF;font-size:9px;font-weight:700;
+  display:none;align-items:center;justify-content:center;padding:0 3px;line-height:1;
+}
+.app-sw-dot.show{display:flex}
+
+body.light .app-sw-panel{background:rgba(242,242,247,.96);border-color:rgba(0,0,0,.09);box-shadow:0 4px 20px rgba(0,0,0,.12)}
+body.light .app-sw-tab.active{background:rgba(0,0,0,.06);color:var(--text)}
+body.light .app-sw-tab:active{background:rgba(0,0,0,.09)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <script>marked.use({ gfm: true, breaks: false });</script>
@@ -893,31 +951,51 @@ let auth; // assigned after runtime config fetch; see initApp() in main script
     <button class="todo-fab" id="todoFab">＋</button>
   </div>
 
-  <!-- Bottom nav — 3 tabs -->
+  <!-- Bottom nav — kept in DOM for switchTab() JS refs, hidden via CSS -->
   <nav class="nav">
     <button class="nav-item active" data-tab="chat">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
       <span class="nav-lbl">Chat</span>
     </button>
     <button class="nav-item" data-tab="tasks">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-        <polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/>
-      </svg>
       <span class="nav-lbl">Tasks</span>
     </button>
     <button class="nav-item" data-tab="review">
       <span class="nav-icon-wrap">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
         <span class="nav-badge" id="reviewBadge"></span>
       </span>
       <span class="nav-lbl">Review</span>
     </button>
   </nav>
+
+  <!-- App switcher handle + panel -->
+  <button class="app-sw-handle" id="appSwHandle" aria-label="Switch view">
+    <span class="app-sw-hbar"></span>
+  </button>
+  <div class="app-sw-backdrop" id="appSwBackdrop"></div>
+  <div class="app-sw-panel" id="appSwPanel">
+    <button class="app-sw-tab" data-tab="chat">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Chat
+    </button>
+    <button class="app-sw-tab" data-tab="tasks">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+        <polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/>
+      </svg>
+      Tasks
+    </button>
+    <button class="app-sw-tab" data-tab="review">
+      <span style="position:relative;display:inline-flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span class="app-sw-dot" id="aswReviewDot"></span>
+      </span>
+      Review
+    </button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2090,9 +2168,12 @@ async function checkPendingCount() {
     const data = await res.json();
     const count = (data.items || []).length;
     const badge = $('reviewBadge');
+    const aswDot = $('aswReviewDot');
+    const badgeVal = count > 99 ? '99+' : String(count);
     if (count > 0) {
-      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.textContent = badgeVal;
       badge.classList.add('show');
+      if (aswDot) { aswDot.textContent = badgeVal; aswDot.classList.add('show'); }
       if (!_notifiedPendingSession && 'Notification' in window && Notification.permission === 'granted') {
         _notifiedPendingSession = true;
         new Notification('GE — Memory Review', {
@@ -2103,6 +2184,7 @@ async function checkPendingCount() {
       }
     } else {
       badge.classList.remove('show');
+      if (aswDot) aswDot.classList.remove('show');
     }
   } catch {}
 }
@@ -2655,6 +2737,32 @@ document.addEventListener('click', e => {
   if (plusMenu.classList.contains('show') && !plusMenu.contains(e.target) && e.target !== importBtn && !importBtn.contains(e.target)) {
     plusMenu.classList.remove('show');
   }
+});
+
+// ── App switcher ──────────────────────────────────────────────
+const appSwHandle   = $('appSwHandle');
+const appSwPanel    = $('appSwPanel');
+const appSwBackdrop = $('appSwBackdrop');
+
+function openAppSw() {
+  const activeScreen = document.querySelector('.screen:not(.hidden)');
+  const activeTab = activeScreen ? activeScreen.id.replace('screen-', '') : 'chat';
+  appSwPanel.querySelectorAll('.app-sw-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === activeTab)
+  );
+  appSwPanel.classList.add('open');
+  appSwBackdrop.classList.add('open');
+}
+function closeAppSw() {
+  appSwPanel.classList.remove('open');
+  appSwBackdrop.classList.remove('open');
+}
+appSwHandle.onclick = () => {
+  appSwPanel.classList.contains('open') ? closeAppSw() : openAppSw();
+};
+appSwBackdrop.onclick = closeAppSw;
+appSwPanel.querySelectorAll('.app-sw-tab').forEach(btn => {
+  btn.onclick = () => { switchTab(btn.dataset.tab); closeAppSw(); };
 });
 </script>
 </body>
